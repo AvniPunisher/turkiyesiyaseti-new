@@ -1,5 +1,5 @@
 // src/components/Login.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -84,6 +84,16 @@ const ErrorMessage = styled.p`
   text-align: center;
 `;
 
+const SuccessMessage = styled.p`
+  color: #55ff7f;
+  margin-bottom: 1rem;
+  text-align: center;
+  background: rgba(0, 50, 20, 0.3);
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 200, 100, 0.5);
+`;
+
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -92,9 +102,17 @@ const Login = () => {
     password: '',
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   
   // URL'den returnUrl'i al (eğer varsa)
   const returnUrl = location.state?.returnUrl || '/';
+  
+  // Kayıt başarılı mesajını kontrol et
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+    }
+  }, [location.state]);
   
   const handleChange = (e) => {
     setFormData({
@@ -108,8 +126,11 @@ const Login = () => {
     setError('');
     
     try {
+      console.log("Login isteği gönderiliyor...", formData);
+      
       // API çağrısı
       const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      console.log("Login yanıtı:", response.data);
       
       // JWT tokenı localStorage'a kaydet
       localStorage.setItem('token', response.data.token);
@@ -129,7 +150,20 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Giriş hatası:", err);
-      setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
+      
+      // Network hatası
+      if (err.code === 'ERR_NETWORK') {
+        setError('Sunucuya bağlanılamadı. Backend sunucunun çalıştığından emin olun.');
+      }
+      // Server'dan dönen spesifik hata
+      else if (err.response && err.response.data) {
+        setError(err.response.data.message || 'Sunucu hatası: ' + err.response.status);
+        console.log("Sunucu yanıtı:", err.response.data);
+      }
+      // Diğer hatalar
+      else {
+        setError('Giriş yapılırken bir hata oluştu: ' + err.message);
+      }
     }
   };
   
@@ -139,6 +173,7 @@ const Login = () => {
         <FormTitle>Giriş Yap</FormTitle>
         
         {error && <ErrorMessage>{error}</ErrorMessage>}
+        {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
         
         <FormInput
           type="email"

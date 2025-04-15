@@ -111,17 +111,39 @@ const Register = () => {
     }
     
     try {
-      // Burada gerçek API çağrısı yapılacak
-      const response = await axios.post('https://api.turkiyesiyaseti.net/api/auth/register', {
+      console.log("Kayıt isteği gönderiliyor:", {
+        username: formData.username,
+        email: formData.email,
+        // Güvenlik için şifreyi loglamıyoruz
+      });
+      
+      // API çağrısı
+      const response = await axios.post('http://localhost:5000/api/auth/register', {
         username: formData.username,
         email: formData.email,
         password: formData.password
       });
       
+      console.log("Kayıt başarılı:", response.data);
+      
       // Başarılı kayıt sonrası giriş sayfasına yönlendir
-      navigate('/login');
+      navigate('/login', { state: { message: 'Kayıt işlemi başarılı. Lütfen giriş yapın.' } });
     } catch (err) {
-      setError(err.response?.data?.message || 'Kayıt olurken bir hata oluştu');
+      console.error("Kayıt hatası:", err);
+      
+      // Network hatası
+      if (err.code === 'ERR_NETWORK') {
+        setError('Sunucuya bağlanılamadı. Backend sunucunun çalıştığından emin olun.');
+      }
+      // Server'dan dönen spesifik hata
+      else if (err.response && err.response.data) {
+        setError(err.response.data.message || 'Sunucu hatası: ' + err.response.status);
+        console.log("Sunucu yanıtı:", err.response.data);
+      }
+      // Diğer hatalar
+      else {
+        setError('Kayıt olurken bir hata oluştu: ' + err.message);
+      }
     }
   };
   

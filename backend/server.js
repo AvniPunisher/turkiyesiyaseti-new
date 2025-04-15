@@ -2,10 +2,12 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { testConnection } = require('./config/db');
 
 // Ortam değişkenlerini yükle
 dotenv.config();
+
+// Veritabanı bağlantısını import et
+const { testConnection } = require('./config/db');
 
 // Express uygulaması
 const app = express();
@@ -14,23 +16,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Veritabanı bağlantısını test et
-testConnection()
-  .then(connected => {
-    if (!connected) {
-      console.error('Veritabanı bağlantısı kurulamadı, sunucu başlatılamıyor.');
-      process.exit(1);
-    }
-  })
-  .catch(err => {
-    console.error('Veritabanı bağlantı testi sırasında hata:', err);
-    process.exit(1);
-  });
-
 // Ana rota
 app.get('/', (req, res) => {
   res.json({ message: 'Türkiye Siyaset Simülasyonu API' });
 });
+
+// Veritabanı bağlantısını test et
+testConnection()
+  .then(connected => {
+    if (!connected) {
+      console.error('Veritabanı bağlantısı kurulamadı. Hata olmadan devam ediliyor.');
+    } else {
+      console.log('Veritabanı bağlantısı başarılı.');
+    }
+  })
+  .catch(err => {
+    console.error('Veritabanı bağlantı testi sırasında hata:', err);
+    console.log('Hata olmadan devam ediliyor.');
+  });
 
 // Rotalar
 app.use('/api/auth', require('./routes/auth'));

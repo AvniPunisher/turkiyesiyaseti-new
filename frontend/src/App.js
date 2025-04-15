@@ -1,14 +1,27 @@
+// src/App.js
 import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MainMenu from './components/MainMenu';
+import Login from './components/Login';
+import Register from './components/Register';
+import SinglePlayer from './components/SinglePlayer';
+import MultiPlayer from './components/MultiPlayer';
+import LoadGame from './components/LoadGame';
+import GlobalStyle from './GlobalStyle';
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="App">
-        <h1>Turkiye Siyaseti</h1>
-        <p>Test başarılı! React Router çalışıyor.</p>
-      </div>
-    </BrowserRouter>
+    <Router>
+      <GlobalStyle />
+      <Routes>
+        <Route path="/" element={<MainMenu />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/single-player" element={<SinglePlayer />} />
+        <Route path="/multi-player" element={<MultiPlayer />} />
+        <Route path="/load-game" element={<LoadGame />} />
+      </Routes>
+    </Router>
   );
 }
 

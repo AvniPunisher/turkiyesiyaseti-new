@@ -1,0 +1,78 @@
+<<<<<<< HEAD
+{
+  "version": 2,
+  "name": "game-project-frontend",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/frontend/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/frontend/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/frontend/manifest.json"
+    },
+    {
+      "src": "/(.+\\.js|\\.css|\\.png|\\.jpg|\\.gif|\\.svg|\\.ttf|\\.woff|\\.woff2)",
+      "dest": "/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/index.html"
+    }
+  ],
+  "env": {
+    "REACT_APP_API_URL": "https://your-railway-backend-url.railway.app"
+  }
+=======
+{
+  "version": 2,
+  "name": "game-project-frontend",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/frontend/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/frontend/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/frontend/manifest.json"
+    },
+    {
+      "src": "/(.+\\.js|\\.css|\\.png|\\.jpg|\\.gif|\\.svg|\\.ttf|\\.woff|\\.woff2)",
+      "dest": "/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/index.html"
+    }
+  ],
+  "env": {
+    "REACT_APP_API_URL": "https://your-railway-backend-url.railway.app"
+  }
+>>>>>>> 0038c28b8ef21d747e1024e46697a4c0f74bd719
+}

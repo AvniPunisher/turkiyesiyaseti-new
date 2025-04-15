@@ -165,7 +165,7 @@ const SinglePlayer = () => {
       console.log("Karakter kontrol ediliyor...");
       
       // Veritabanından karakter bilgilerini çek
-      const response = await axios.get('http://localhost:5000/api/game/get-character', {
+      const response = await axios.get('http://localhost:5001/api/game/get-character', {
         headers: {
           Authorization: `Bearer ${token}`
         }

@@ -1,7 +1,7 @@
 /* src/components/CharacterCreator/CharacterCreator.css */
 .character-container {
   max-width: 1000px;
-  margin: 0 auto;
+  margin: 30px auto;
   padding: 30px;
   font-family: 'Orbitron', Arial, sans-serif;
   background-color: rgba(0, 30, 60, 0.7);
@@ -9,6 +9,18 @@
   box-shadow: 0 2px 15px rgba(0, 200, 255, 0.3);
   color: white;
   border: 1px solid rgba(0, 200, 255, 0.3);
+  min-height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  background: linear-gradient(to bottom, #1a2a3a, #0a1a2a);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto; /* Sayfada scroll olsun */
 }
 
 .character-title {
@@ -59,6 +71,8 @@
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  flex: 1;
+  overflow-y: auto; /* İçerik taşarsa scroll olsun */
 }
 
 .form-group {
@@ -270,4 +284,10 @@
 .slider-fixed-positions::-moz-range-thumb:hover {
   background: rgba(0, 180, 255, 1);
   transform: scale(1.1);
+}
+
+/* İçerik için scroll özelliğini etkinleştir */
+.ideology-container {
+  background: rgba(0, 30, 60, 0.5) !important;
+  color: white !important;
 }

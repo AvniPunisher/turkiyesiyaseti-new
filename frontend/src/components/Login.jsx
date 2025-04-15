@@ -1,6 +1,6 @@
 // src/components/Login.jsx
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
 
@@ -86,11 +86,15 @@ const ErrorMessage = styled.p`
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
+  
+  // URL'den returnUrl'i al (eğer varsa)
+  const returnUrl = location.state?.returnUrl || '/';
   
   const handleChange = (e) => {
     setFormData({
@@ -104,14 +108,27 @@ const Login = () => {
     setError('');
     
     try {
-      // Burada gerçek API çağrısı yapılacak
-      const response = await axios.post('https://api.turkiyesiyaseti.net/api/auth/login', formData);      
+      // API çağrısı
+      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      
       // JWT tokenı localStorage'a kaydet
       localStorage.setItem('token', response.data.token);
       
-      // Ana menüye yönlendir
-      navigate('/');
+      // Kullanıcı bilgilerini localStorage'a kaydet
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      console.log("Giriş başarılı, yönlendiriliyor:", returnUrl);
+      
+      // Belirtilen yere veya varsayılan olarak ana sayfaya yönlendir
+      if (returnUrl === '/character-creator') {
+        navigate('/character-creator');
+      } else {
+        navigate(returnUrl);
+      }
     } catch (err) {
+      console.error("Giriş hatası:", err);
       setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
     }
   };

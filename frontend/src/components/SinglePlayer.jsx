@@ -32,6 +32,7 @@ const GameCanvas = styled.div`
   justify-content: center;
   align-items: center;
   position: relative;
+  overflow-y: auto; /* İçerik taşarsa scroll olsun */
 `;
 
 const GameControls = styled.div`
@@ -70,6 +71,8 @@ const GameOverlay = styled.div`
   align-items: center;
   background: rgba(0, 10, 20, 0.8);
   z-index: 10;
+  overflow-y: auto; /* İçerik taşarsa scroll olsun */
+  padding: 2rem 0;
 `;
 
 const OverlayText = styled.h2`
@@ -108,6 +111,13 @@ const ButtonsContainer = styled.div`
   margin-top: 1rem;
 `;
 
+const LoadingText = styled.div`
+  font-size: 1.5rem;
+  color: rgba(0, 200, 255, 0.8);
+  text-align: center;
+  margin: 2rem 0;
+`;
+
 const SinglePlayer = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -115,6 +125,8 @@ const SinglePlayer = () => {
   const [gamePaused, setGamePaused] = useState(false);
   const [character, setCharacter] = useState(null);
   const [hasCharacter, setHasCharacter] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const [gameData, setGameData] = useState({
     score: 0,
     level: 1,
@@ -123,27 +135,34 @@ const SinglePlayer = () => {
   
   // Oyun açılışında karakter kontrolü
   useEffect(() => {
-    // URL'den gelen karakter bilgisini kontrol et
+    // İlk olarak URL'den gelen karakter bilgisini kontrol et
     if (location.state?.character) {
       setCharacter(location.state.character);
       setHasCharacter(true);
+      setIsLoading(false);
+      setAuthChecked(true);
       return;
     }
     
-    // Kullanıcının kaydedilmiş karakteri var mı kontrol et
-    checkExistingCharacter();
-  }, [location]);
+    // Kullanıcının giriş yapıp yapmadığını kontrol et
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      console.log("Token bulunamadı, giriş sayfasına yönlendiriliyor");
+      // Kullanıcı giriş yapmamış, login sayfasına yönlendir
+      navigate('/login', { state: { returnUrl: '/character-creator' } });
+      return;
+    }
+    
+    // Kullanıcı giriş yapmış, karakteri var mı kontrol et
+    checkExistingCharacter(token);
+  }, [location.pathname]); // sadece path değişirse çalışsın
   
   // Mevcut kaydedilmiş karakteri kontrol et
-  const checkExistingCharacter = async () => {
+  const checkExistingCharacter = async (token) => {
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        // Kullanıcı giriş yapmamış, karakter oluşturma sayfasına yönlendir
-        navigate('/login', { state: { returnUrl: '/character-creator' } });
-        return;
-      }
+      setIsLoading(true);
+      console.log("Karakter kontrol ediliyor...");
       
       // Veritabanından karakter bilgilerini çek
       const response = await axios.get('http://localhost:5000/api/game/get-character', {
@@ -153,14 +172,28 @@ const SinglePlayer = () => {
       });
       
       if (response.data.success && response.data.character) {
+        console.log("Karakter bulundu:", response.data.character);
         setCharacter(response.data.character);
         setHasCharacter(true);
       } else {
+        console.log("Karakter bulunamadı");
         setHasCharacter(false);
       }
     } catch (error) {
       console.error('Karakter kontrolü hatası:', error);
+      
+      // Token geçersizse veya süresi dolmuşsa
+      if (error.response && error.response.status === 401) {
+        console.log("Token geçersiz, giriş sayfasına yönlendiriliyor");
+        localStorage.removeItem('token');
+        navigate('/login', { state: { returnUrl: '/character-creator' } });
+        return;
+      }
+      
       setHasCharacter(false);
+    } finally {
+      setIsLoading(false);
+      setAuthChecked(true);
     }
   };
   
@@ -195,8 +228,9 @@ const SinglePlayer = () => {
       
       // Oyun verisini veritabanına kaydet
       const response = await axios.post('http://localhost:5000/api/game/save-game', {
-        character,
-        gameData
+        gameData,
+        saveName: `${character.fullName}'in Oyunu`,
+        saveSlot: 1
       }, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -222,11 +256,29 @@ const SinglePlayer = () => {
     navigate('/character-creator');
   };
   
+  if (isLoading) {
+    return (
+      <GameContainer>
+        <GameHeader>
+          <GameTitle>Tek Oyunculu Mod</GameTitle>
+        </GameHeader>
+        
+        <GameCanvas>
+          <LoadingText>Yükleniyor...</LoadingText>
+        </GameCanvas>
+        
+        <GameControls>
+          <Button onClick={returnToMenu}>Ana Menü</Button>
+        </GameControls>
+      </GameContainer>
+    );
+  }
+  
   return (
     <GameContainer>
       <GameHeader>
         <GameTitle>Tek Oyunculu Mod</GameTitle>
-        {character && (
+        {character && gameStarted && (
           <div>
             {character.fullName} | Skor: {gameData.score} | Seviye: {gameData.level}
           </div>
@@ -234,7 +286,7 @@ const SinglePlayer = () => {
       </GameHeader>
       
       <GameCanvas>
-        {!hasCharacter && (
+        {authChecked && !hasCharacter && (
           <GameOverlay>
             <OverlayText>Karakter Bulunamadı</OverlayText>
             <p style={{ fontSize: '1.2rem', marginBottom: '1.5rem', textAlign: 'center' }}>

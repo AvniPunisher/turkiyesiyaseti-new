@@ -76,9 +76,16 @@ const UserInfo = styled.div`
   font-size: 1rem;
 `;
 
+const Loading = styled.div`
+  color: rgba(0, 200, 255, 0.8);
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+`;
+
 const MainMenu = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   
   useEffect(() => {
@@ -86,6 +93,8 @@ const MainMenu = () => {
     const token = localStorage.getItem('token');
     if (token) {
       checkAuthStatus(token);
+    } else {
+      setLoading(false);
     }
   }, []);
   
@@ -107,29 +116,31 @@ const MainMenu = () => {
     } catch (error) {
       console.error('Kullanıcı bilgileri alınamadı:', error);
       handleLogout();
+    } finally {
+      setLoading(false);
     }
   };
   
   const handleSinglePlayer = () => {
-    // Token kontrolü yap, varsa doğrudan single-player'a gönder
-    if (isLoggedIn) {
-      navigate('/single-player');
-    } else {
-      // Giriş yapılmamışsa karakter oluşturma ekranına yönlendir
-      navigate('/login', { state: { returnUrl: '/character-creator' } });
-    }
+    // Tek oyunculu moda yönlendir
+    // Giriş yapmadıysa login ekranı, karakteri yoksa karakter oluşturmaya SinglePlayer bileşeni içinde yönlendirilecek
+    navigate('/single-player');
   };
   
   const handleMultiPlayer = () => {
+    // Çok oyunculu moda yönlendir
+    // Giriş yapmadıysa login ekranına MultiPlayer bileşeni içinde yönlendirilecek
     navigate('/multi-player');
   };
   
   const handleLoadGame = () => {
+    // Kayıtlı oyun yükleme ekranına yönlendir
+    // Giriş yapmadıysa login ekranına LoadGame bileşeni içinde yönlendirilecek
     navigate('/load-game');
   };
   
   const handleLogin = () => {
-    navigate('/login');
+    navigate('/login', { state: { returnUrl: '/' } });
   };
   
   const handleRegister = () => {
@@ -141,6 +152,15 @@ const MainMenu = () => {
     setIsLoggedIn(false);
     setUserData(null);
   };
+  
+  if (loading) {
+    return (
+      <MenuContainer>
+        <GameTitle>TÜRKİYE SİYASET SİMÜLASYONU</GameTitle>
+        <Loading>Yükleniyor...</Loading>
+      </MenuContainer>
+    );
+  }
   
   return (
     <MenuContainer>

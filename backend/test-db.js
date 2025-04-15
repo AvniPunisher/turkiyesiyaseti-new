@@ -1,4 +1,3 @@
-// Bir test-db.js dosyası oluşturun ve Railway'e deploy edin
 const mysql = require('mysql2/promise');
 
 async function main() {

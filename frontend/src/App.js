@@ -1,24 +1,27 @@
-import logo from './logo.svg';
-import './App.css';
+// src/App.jsx
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MainMenu from './components/MainMenu';
+import Login from './components/Login';
+import Register from './components/Register';
+import SinglePlayer from './components/SinglePlayer';
+import MultiPlayer from './components/MultiPlayer';
+import LoadGame from './components/LoadGame';
+import GlobalStyle from './GlobalStyle';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <GlobalStyle />
+      <Routes>
+        <Route path="/" element={<MainMenu />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/single-player" element={<SinglePlayer />} />
+        <Route path="/multi-player" element={<MultiPlayer />} />
+        <Route path="/load-game" element={<LoadGame />} />
+      </Routes>
+    </Router>
   );
 }
 

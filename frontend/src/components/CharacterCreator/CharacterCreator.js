@@ -662,7 +662,7 @@ const CharacterCreator = () => {
         )}
         
         {/* İlerle veya Karakter Oluşturma Düğmesi */}
-        <div style={{marginTop: '20px', textAlign: 'right'}}>
+        <div className="btn-container">
           {currentTab === 0 ? (
             <button 
               className="btn"

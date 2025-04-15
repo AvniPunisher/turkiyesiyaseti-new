@@ -112,7 +112,7 @@ const Register = () => {
     
     try {
       // Burada gerçek API çağrısı yapılacak
-      const response = await axios.post(`${API_URL}/api/auth/register`, {
+      const response = await axios.post('https://api.turkiyesiyaseti.net/api/auth/register', {
         username: formData.username,
         email: formData.email,
         password: formData.password

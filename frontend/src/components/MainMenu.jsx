@@ -1,7 +1,8 @@
 // src/components/MainMenu.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import axios from 'axios';
 
 const MenuContainer = styled.div`
   display: flex;
@@ -66,12 +67,57 @@ const AuthButton = styled.button`
   }
 `;
 
+const UserInfo = styled.div`
+  background: rgba(0, 30, 60, 0.7);
+  padding: 10px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+`;
+
 const MainMenu = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState(null);
+  
+  useEffect(() => {
+    // Token kontrolü
+    const token = localStorage.getItem('token');
+    if (token) {
+      checkAuthStatus(token);
+    }
+  }, []);
+  
+  const checkAuthStatus = async (token) => {
+    try {
+      // Kullanıcı bilgilerini kontrol et
+      const response = await axios.get('http://localhost:5000/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        setIsLoggedIn(true);
+        setUserData(response.data.user);
+      } else {
+        handleLogout();
+      }
+    } catch (error) {
+      console.error('Kullanıcı bilgileri alınamadı:', error);
+      handleLogout();
+    }
+  };
   
   const handleSinglePlayer = () => {
-    navigate('/single-player');
+    // Token kontrolü yap, varsa doğrudan single-player'a gönder
+    if (isLoggedIn) {
+      navigate('/single-player');
+    } else {
+      // Giriş yapılmamışsa karakter oluşturma ekranına yönlendir
+      navigate('/login', { state: { returnUrl: '/character-creator' } });
+    }
   };
   
   const handleMultiPlayer = () => {
@@ -90,17 +136,38 @@ const MainMenu = () => {
     navigate('/register');
   };
   
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    setUserData(null);
+  };
+  
   return (
     <MenuContainer>
-      <GameTitle>OYUN İSMİ</GameTitle>
+      <GameTitle>TÜRKİYE SİYASET SİMÜLASYONU</GameTitle>
       
-      {!isLoggedIn ? (
+      {isLoggedIn && userData ? (
+        <UserInfo>
+          Hoş geldiniz, {userData.username} 
+          <button 
+            onClick={handleLogout} 
+            style={{ 
+              marginLeft: '15px', 
+              background: 'none', 
+              border: 'none', 
+              color: 'rgba(0, 200, 255, 0.8)', 
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            Çıkış Yap
+          </button>
+        </UserInfo>
+      ) : (
         <AuthButtons>
           <AuthButton onClick={handleLogin}>Giriş Yap</AuthButton>
           <AuthButton onClick={handleRegister}>Kayıt Ol</AuthButton>
         </AuthButtons>
-      ) : (
-        <AuthButton onClick={() => setIsLoggedIn(false)}>Çıkış Yap</AuthButton>
       )}
       
       <MenuButton onClick={handleSinglePlayer}>Tek Oyunculu</MenuButton>

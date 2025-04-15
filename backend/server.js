@@ -2,48 +2,53 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { testConnection } = require('./config/db');
 
-// Config
+// Ortam değişkenlerini yükle
 dotenv.config();
+
+// Express uygulaması
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
-const authRoutes = require('./routes/auth');
-const gameRoutes = require('./routes/game');
-
-app.use('/api/auth', authRoutes);
-app.use('/api/game', gameRoutes);
-
-// Root route
-app.get('/', (req, res) => {
-  res.send('Oyun API çalışıyor!');
-});
-
-// Port
-const PORT = process.env.PORT || 5000;
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server ${PORT} portunda çalışıyor`);
-
-// server.js dosyasında
-const { pool, testConnection } = require('./config/db');
-
-// Uygulama başladığında veritabanı bağlantısını test et
+// Veritabanı bağlantısını test et
 testConnection()
-  .then(success => {
-    if (success) {
-      console.log('MySQL veritabanına başarıyla bağlandı!');
-    } else {
-      console.error('MySQL veritabanına bağlanılamadı!');
+  .then(connected => {
+    if (!connected) {
+      console.error('Veritabanı bağlantısı kurulamadı, sunucu başlatılamıyor.');
+      process.exit(1);
     }
   })
   .catch(err => {
-    console.error('Veritabanı bağlantı hatası:', err);
+    console.error('Veritabanı bağlantı testi sırasında hata:', err);
+    process.exit(1);
   });
-  
+
+// Ana rota
+app.get('/', (req, res) => {
+  res.json({ message: 'Türkiye Siyaset Simülasyonu API' });
+});
+
+// Rotalar
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/game', require('./routes/game'));
+
+// 404 hata yakalama
+app.use((req, res) => {
+  res.status(404).json({ message: 'Aradığınız sayfa bulunamadı' });
+});
+
+// Genel hata yakalama
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Sunucu hatası' });
+});
+
+// Sunucuyu başlat
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Sunucu ${PORT} portunda çalışıyor`);
 });

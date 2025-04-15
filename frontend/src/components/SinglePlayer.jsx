@@ -1,7 +1,8 @@
 // src/components/SinglePlayer.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import axios from 'axios';
 
 const GameContainer = styled.div`
   display: flex;
@@ -77,15 +78,91 @@ const OverlayText = styled.h2`
   color: rgba(0, 200, 255, 0.8);
 `;
 
+const CharacterInfoCard = styled.div`
+  background: rgba(0, 30, 60, 0.7);
+  padding: 1.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  margin-bottom: 1.5rem;
+  max-width: 500px;
+  width: 100%;
+`;
+
+const CharacterDetail = styled.div`
+  margin-bottom: 0.8rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const CharacterLabel = styled.span`
+  font-weight: bold;
+  color: rgba(0, 200, 255, 0.8);
+  margin-right: 0.5rem;
+`;
+
+const ButtonsContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
 const SinglePlayer = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [gameStarted, setGameStarted] = useState(false);
   const [gamePaused, setGamePaused] = useState(false);
+  const [character, setCharacter] = useState(null);
+  const [hasCharacter, setHasCharacter] = useState(false);
   const [gameData, setGameData] = useState({
     score: 0,
     level: 1,
     // Diğer oyun verileri...
   });
+  
+  // Oyun açılışında karakter kontrolü
+  useEffect(() => {
+    // URL'den gelen karakter bilgisini kontrol et
+    if (location.state?.character) {
+      setCharacter(location.state.character);
+      setHasCharacter(true);
+      return;
+    }
+    
+    // Kullanıcının kaydedilmiş karakteri var mı kontrol et
+    checkExistingCharacter();
+  }, [location]);
+  
+  // Mevcut kaydedilmiş karakteri kontrol et
+  const checkExistingCharacter = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        // Kullanıcı giriş yapmamış, karakter oluşturma sayfasına yönlendir
+        navigate('/login', { state: { returnUrl: '/character-creator' } });
+        return;
+      }
+      
+      // Veritabanından karakter bilgilerini çek
+      const response = await axios.get('http://localhost:5000/api/game/get-character', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success && response.data.character) {
+        setCharacter(response.data.character);
+        setHasCharacter(true);
+      } else {
+        setHasCharacter(false);
+      }
+    } catch (error) {
+      console.error('Karakter kontrolü hatası:', error);
+      setHasCharacter(false);
+    }
+  };
   
   // Oyun döngüsü
   useEffect(() => {
@@ -107,28 +184,101 @@ const SinglePlayer = () => {
     setGamePaused(!gamePaused);
   };
   
-  const saveGame = () => {
-    // Oyun kaydetme kodları buraya gelecek
-    alert('Oyun kaydedildi!');
+  const saveGame = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Oyunu kaydetmek için giriş yapmanız gerekmektedir.');
+        return;
+      }
+      
+      // Oyun verisini veritabanına kaydet
+      const response = await axios.post('http://localhost:5000/api/game/save-game', {
+        character,
+        gameData
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        alert('Oyun başarıyla kaydedildi!');
+      } else {
+        throw new Error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Oyun kaydedilirken hata:', error);
+      alert('Oyun kaydedilirken bir hata oluştu.');
+    }
   };
   
   const returnToMenu = () => {
     navigate('/');
   };
   
+  const createNewCharacter = () => {
+    navigate('/character-creator');
+  };
+  
   return (
     <GameContainer>
       <GameHeader>
         <GameTitle>Tek Oyunculu Mod</GameTitle>
-        <div>
-          Skor: {gameData.score} | Seviye: {gameData.level}
-        </div>
+        {character && (
+          <div>
+            {character.fullName} | Skor: {gameData.score} | Seviye: {gameData.level}
+          </div>
+        )}
       </GameHeader>
       
       <GameCanvas>
-        {!gameStarted && (
+        {!hasCharacter && (
+          <GameOverlay>
+            <OverlayText>Karakter Bulunamadı</OverlayText>
+            <p style={{ fontSize: '1.2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+              Oyunu oynamak için bir karakter oluşturmanız gerekmektedir.
+            </p>
+            <Button onClick={createNewCharacter}>Yeni Karakter Oluştur</Button>
+          </GameOverlay>
+        )}
+        
+        {hasCharacter && !gameStarted && (
           <GameOverlay>
             <OverlayText>Oyunu Başlatmak İçin Hazır mısın?</OverlayText>
+            
+            <CharacterInfoCard>
+              <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'rgba(0, 200, 255, 0.8)' }}>
+                Karakter Bilgileri
+              </h3>
+              
+              <CharacterDetail>
+                <CharacterLabel>İsim:</CharacterLabel>
+                <span>{character.fullName}</span>
+              </CharacterDetail>
+              
+              <CharacterDetail>
+                <CharacterLabel>Yaş:</CharacterLabel>
+                <span>{character.age}</span>
+              </CharacterDetail>
+              
+              <CharacterDetail>
+                <CharacterLabel>Meslek:</CharacterLabel>
+                <span>{character.profession}</span>
+              </CharacterDetail>
+              
+              <CharacterDetail>
+                <CharacterLabel>İdeoloji:</CharacterLabel>
+                <span>{character.ideology ? 
+                  (character.ideology.overallPosition < 20 ? "Sol" :
+                   character.ideology.overallPosition < 40 ? "Merkez Sol" :
+                   character.ideology.overallPosition < 60 ? "Merkez" :
+                   character.ideology.overallPosition < 80 ? "Merkez Sağ" : "Sağ") 
+                  : "Bilinmiyor"}</span>
+              </CharacterDetail>
+            </CharacterInfoCard>
+            
             <Button onClick={startGame}>Oyunu Başlat</Button>
           </GameOverlay>
         )}
@@ -136,22 +286,31 @@ const SinglePlayer = () => {
         {gamePaused && (
           <GameOverlay>
             <OverlayText>Oyun Duraklatıldı</OverlayText>
-            <Button onClick={pauseGame}>Devam Et</Button>
+            <ButtonsContainer>
+              <Button onClick={pauseGame}>Devam Et</Button>
+              <Button onClick={saveGame}>Kaydet</Button>
+            </ButtonsContainer>
           </GameOverlay>
         )}
         
         {/* Oyun canvas'ı buraya gelecek */}
-        <div style={{ fontSize: '1.5rem' }}>
-          Oyun Alanı
-        </div>
+        {gameStarted && !gamePaused && (
+          <div style={{ fontSize: '1.5rem' }}>
+            Oyun Alanı - Aktif Oyun
+          </div>
+        )}
       </GameCanvas>
       
       <GameControls>
         <Button onClick={returnToMenu}>Ana Menü</Button>
-        <Button onClick={pauseGame}>
-          {gamePaused ? 'Devam Et' : 'Duraklat'}
-        </Button>
-        <Button onClick={saveGame}>Oyunu Kaydet</Button>
+        {gameStarted && (
+          <Button onClick={pauseGame}>
+            {gamePaused ? 'Devam Et' : 'Duraklat'}
+          </Button>
+        )}
+        {gameStarted && !gamePaused && (
+          <Button onClick={saveGame}>Oyunu Kaydet</Button>
+        )}
       </GameControls>
     </GameContainer>
   );

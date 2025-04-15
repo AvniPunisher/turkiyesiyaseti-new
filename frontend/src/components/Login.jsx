@@ -105,8 +105,7 @@ const Login = () => {
     
     try {
       // Burada gerçek API çağrısı yapılacak
-      const response = await axios.post(`${API_URL}/api/auth/login', formData);
-      
+      const response = await axios.post('https://api.turkiyesiyaseti.net/api/auth/login', formData);      
       // JWT tokenı localStorage'a kaydet
       localStorage.setItem('token', response.data.token);
       

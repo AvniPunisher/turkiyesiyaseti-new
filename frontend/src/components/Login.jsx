@@ -129,7 +129,7 @@ const Login = () => {
       console.log("Login isteği gönderiliyor...", formData);
       
       // API çağrısı
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      const response = await axios.post('http://localhost:5001/api/auth/login', formData);
       console.log("Login yanıtı:", response.data);
       
       // JWT tokenı localStorage'a kaydet

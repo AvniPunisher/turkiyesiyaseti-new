@@ -1,7 +1,18 @@
 // backend/config/db.js
 const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
 
-// MySQL Bağlantı Havuzu
+dotenv.config();
+
+// Bağlantı bilgilerini loglama (debug için)
+console.log('Veritabanı bağlantı bilgileri:', {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT
+});
+
+// Veritabanı havuzu oluştur
 const createPool = () => {
   try {
     return mysql.createPool({
@@ -13,7 +24,9 @@ const createPool = () => {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      connectTimeout: 60000  // Bağlantı zaman aşımını artır (60 saniye)
+      ssl: {
+        rejectUnauthorized: false  // Railway için SSL bağlantısına izin ver
+      }
     });
   } catch (error) {
     console.error('MySQL bağlantı havuzu oluşturulurken hata:', error);
@@ -31,6 +44,11 @@ const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
     console.log('MySQL veritabanına başarıyla bağlandı!');
+    
+    // Basit bir sorgu çalıştır
+    const [result] = await connection.query('SELECT 1 as result');
+    console.log('Test sorgusu sonucu:', result);
+    
     connection.release();
     return true;
   } catch (error) {
@@ -41,5 +59,9 @@ const testConnection = async () => {
 
 module.exports = {
   pool,
-  testConnection
+  testConnection,
+  query: async (sql, params) => {
+    if (!pool) throw new Error('Veritabanı bağlantısı bulunamadı');
+    return pool.query(sql, params);
+  }
 };

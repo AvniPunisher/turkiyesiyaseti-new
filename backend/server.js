@@ -29,4 +29,21 @@ const PORT = process.env.PORT || 5000;
 // Start server
 app.listen(PORT, () => {
   console.log(`Server ${PORT} portunda çalışıyor`);
+
+// server.js dosyasında
+const { pool, testConnection } = require('./config/db');
+
+// Uygulama başladığında veritabanı bağlantısını test et
+testConnection()
+  .then(success => {
+    if (success) {
+      console.log('MySQL veritabanına başarıyla bağlandı!');
+    } else {
+      console.error('MySQL veritabanına bağlanılamadı!');
+    }
+  })
+  .catch(err => {
+    console.error('Veritabanı bağlantı hatası:', err);
+  });
+  
 });

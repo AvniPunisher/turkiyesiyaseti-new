@@ -101,7 +101,7 @@ const MainMenu = () => {
   const checkAuthStatus = async (token) => {
     try {
       // Kullanıcı bilgilerini kontrol et
-      const response = await axios.get('http://localhost:5001/api/auth/me', {
+      const response = await axios.get('https://api.turkiyesiyaseti.net/api/auth/me', {
         headers: {
           Authorization: `Bearer ${token}`
         }

@@ -301,7 +301,7 @@
 .color-option {
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: 100%;
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.2s ease;

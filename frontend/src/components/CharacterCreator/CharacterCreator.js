@@ -4,6 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './CharacterCreator.css';
 
+// JSON verileri
+import ideologyAxes from '../../data/ideologies.json';
+import cities from '../../data/cities.json';
+import professions from '../../data/professions.json';
+
 const CharacterCreator = () => {
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(0);
@@ -58,99 +63,6 @@ const CharacterCreator = () => {
     const usedPoints = Object.values(character.stats).reduce((total, stat) => total + stat, 0);
     setRemainingStatPoints(totalStatPoints - usedPoints);
   }, [character.stats]);
-  
-  // İdeoloji eksenlerini tanımlama
-  const ideologyAxes = {
-    economic: {
-      name: "Ekonomik",
-      positions: ["Devletçi", "Karma Ekonomi", "Merkez", "Liberal Ekonomi", "Serbest Piyasa"],
-      weight: 1.2
-    },
-    cultural: {
-      name: "Kültürel",
-      positions: ["İlerici/Batıcı", "Laik/Seküler", "Merkez", "Muhafazakar", "Dini Muhafazakar"],
-      weight: 1.2
-    },
-    diplomatic: {
-      name: "Diplomatik",
-      positions: ["Batı Yanlısı", "Denge Politikası", "Bağımsız Dış Politika", "Bölgesel Liderlik", "Yeni-Osmanlıcılık"],
-      weight: 0.8
-    },
-    social: {
-      name: "Toplumsal",
-      positions: ["Çoğulcu", "Cumhuriyetçi", "Merkez", "Türk Milliyetçisi", "Muhafazakar Milliyetçi"],
-      weight: 1.0
-    },
-    government: {
-      name: "Hükümet",
-      positions: ["Parlamenter", "Güçlendirilmiş Parlamentarizm", "Yarı Başkanlık", "Başkanlık", "Merkezi Otorite"],
-      weight: 0.8
-    }
-  };
-  
-  // Türkiye illeri
-  const cities = [
-    { code: 'TR01', name: 'Adana' }, { code: 'TR02', name: 'Adıyaman' }, 
-    { code: 'TR03', name: 'Afyonkarahisar' }, { code: 'TR04', name: 'Ağrı' }, 
-    { code: 'TR05', name: 'Amasya' }, { code: 'TR06', name: 'Ankara' }, 
-    { code: 'TR07', name: 'Antalya' }, { code: 'TR08', name: 'Artvin' }, 
-    { code: 'TR09', name: 'Aydın' }, { code: 'TR10', name: 'Balıkesir' },
-    { code: 'TR11', name: 'Bilecik' }, { code: 'TR12', name: 'Bingöl' },
-    { code: 'TR13', name: 'Bitlis' }, { code: 'TR14', name: 'Bolu' },
-    { code: 'TR15', name: 'Burdur' }, { code: 'TR16', name: 'Bursa' },
-    { code: 'TR17', name: 'Çanakkale' }, { code: 'TR18', name: 'Çankırı' },
-    { code: 'TR19', name: 'Çorum' }, { code: 'TR20', name: 'Denizli' },
-    { code: 'TR21', name: 'Diyarbakır' }, { code: 'TR22', name: 'Edirne' },
-    { code: 'TR23', name: 'Elazığ' }, { code: 'TR24', name: 'Erzincan' },
-    { code: 'TR25', name: 'Erzurum' }, { code: 'TR26', name: 'Eskişehir' },
-    { code: 'TR27', name: 'Gaziantep' }, { code: 'TR28', name: 'Giresun' },
-    { code: 'TR29', name: 'Gümüşhane' }, { code: 'TR30', name: 'Hakkari' },
-    { code: 'TR31', name: 'Hatay' }, { code: 'TR32', name: 'Isparta' },
-    { code: 'TR33', name: 'Mersin' }, { code: 'TR34', name: 'İstanbul' },
-    { code: 'TR35', name: 'İzmir' }, { code: 'TR36', name: 'Kars' },
-    { code: 'TR37', name: 'Kastamonu' }, { code: 'TR38', name: 'Kayseri' },
-    { code: 'TR39', name: 'Kırklareli' }, { code: 'TR40', name: 'Kırşehir' },
-    { code: 'TR41', name: 'Kocaeli' }, { code: 'TR42', name: 'Konya' },
-    { code: 'TR43', name: 'Kütahya' }, { code: 'TR44', name: 'Malatya' },
-    { code: 'TR45', name: 'Manisa' }, { code: 'TR46', name: 'Kahramanmaraş' },
-    { code: 'TR47', name: 'Mardin' }, { code: 'TR48', name: 'Muğla' },
-    { code: 'TR49', name: 'Muş' }, { code: 'TR50', name: 'Nevşehir' },
-    { code: 'TR51', name: 'Niğde' }, { code: 'TR52', name: 'Ordu' },
-    { code: 'TR53', name: 'Rize' }, { code: 'TR54', name: 'Sakarya' },
-    { code: 'TR55', name: 'Samsun' }, { code: 'TR56', name: 'Siirt' },
-    { code: 'TR57', name: 'Sinop' }, { code: 'TR58', name: 'Sivas' },
-    { code: 'TR59', name: 'Tekirdağ' }, { code: 'TR60', name: 'Tokat' },
-    { code: 'TR61', name: 'Trabzon' }, { code: 'TR62', name: 'Tunceli' },
-    { code: 'TR63', name: 'Şanlıurfa' }, { code: 'TR64', name: 'Uşak' },
-    { code: 'TR65', name: 'Van' }, { code: 'TR66', name: 'Yozgat' },
-    { code: 'TR67', name: 'Zonguldak' }, { code: 'TR68', name: 'Aksaray' },
-    { code: 'TR69', name: 'Bayburt' }, { code: 'TR70', name: 'Karaman' },
-    { code: 'TR71', name: 'Kırıkkale' }, { code: 'TR72', name: 'Batman' },
-    { code: 'TR73', name: 'Şırnak' }, { code: 'TR74', name: 'Bartın' },
-    { code: 'TR75', name: 'Ardahan' }, { code: 'TR76', name: 'Iğdır' },
-    { code: 'TR77', name: 'Yalova' }, { code: 'TR78', name: 'Karabük' },
-    { code: 'TR79', name: 'Kilis' }, { code: 'TR80', name: 'Osmaniye' },
-    { code: 'TR81', name: 'Düzce' }
-  ];
-
-  // Meslekler ve maaşları
-  const professions = [
-    { name: 'Avukat', salary: 25000 },
-    { name: 'Doktor', salary: 30000 },
-    { name: 'Öğretmen', salary: 15000 },
-    { name: 'Mühendis', salary: 22000 },
-    { name: 'İşletmeci', salary: 18000 },
-    { name: 'Ekonomist', salary: 20000 },
-    { name: 'Gazeteci', salary: 17000 },
-    { name: 'İş İnsanı', salary: 40000 },
-    { name: 'Akademisyen', salary: 18000 },
-    { name: 'Bürokrat', salary: 23000 },
-    { name: 'Askeri Personel', salary: 19000 },
-    { name: 'STK Yöneticisi', salary: 16000 },
-    { name: 'Sendikacı', salary: 17000 },
-    { name: 'Din Görevlisi', salary: 14000 },
-    { name: 'Serbest Meslek', salary: 15000 }
-  ];
 
   // İdeolojik etiketler
   const getIdeologicalLabel = (position) => {
@@ -231,20 +143,21 @@ const CharacterCreator = () => {
       [field]: value
     });
   };
-
+  
   // Tab değiştirme fonksiyonu
   const changeTab = (tabIndex) => {
     // Tab 1'den Tab 2'ye geçişi kontrol et
-    if (tabIndex === 1) {
-      // Sadece "İlerle" butonu ile geçiş yapılabilsin
-      return;
+    if (tabIndex === 1 && (!character.fullName || !character.birthPlace || !character.profession)) {
+      return; // Gerekli alanlar dolmadıysa tab değiştirme
     }
     setCurrentTab(tabIndex);
   };
   
   // İlerle butonu ile tab 2'ye geçiş
   const proceedToNextTab = () => {
-    setCurrentTab(1);
+    if (character.fullName && character.birthPlace && character.profession) {
+      setCurrentTab(1);
+    }
   };
   
   // Karakter oluşturma işlemi
@@ -313,162 +226,170 @@ const CharacterCreator = () => {
     return profession ? profession.salary : 15000; // Varsayılan maaş
   };
 
+  // Önceki sayfaya dönme fonksiyonu
+  const handleGoBack = () => {
+    navigate('/single-player');
+  };
+
   return (
     <div className="character-container">
-      <h1 className="character-title">Türkiye Siyaset Simülasyonu</h1>
-      <h2 className="character-subtitle">Karakter Oluşturma</h2>
-      
-      {/* Tab Menüsü */}
-      <div className="tab-menu">
-        <button 
-          className={`tab-button ${currentTab === 0 ? 'active' : ''}`}
-          onClick={() => changeTab(0)}
-        >
-          Temel Bilgiler ve İdeoloji
-        </button>
-        <button 
-          className={`tab-button ${currentTab === 1 ? 'active' : ''}`}
-          onClick={() => changeTab(1)}
-        >
-          Karakter Özellikleri
-        </button>
+      <div className="character-header">
+        <h1 className="character-title">Karakter Oluşturma</h1>
       </div>
       
-      {/* Tab İçeriği */}
-      <div className="tab-content">
-        {/* Tab 1: Temel Bilgiler ve İdeoloji */}
-        {currentTab === 0 && (
-          <div>
-            <h3 className="section-title">Temel Bilgiler</h3>
-            <div className="character-info-grid">
-              <div className="form-group">
-                <label className="form-label">Oyun Adı</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={character.gameName}
-                  onChange={(e) => handleInputChange('gameName', e.target.value)}
-                  placeholder="Oyunun kayıt olacağı adını girin"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Ad ve Soyad</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={character.fullName}
-                  onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  placeholder="Diyaloglar ve medyada gözükecek"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Yaş</label>
-                <div style={{display: 'flex', alignItems: 'center'}}>
-                  <input 
-                    type="range" 
-                    min="25" 
-                    max="75" 
-                    style={{width: '75%', marginRight: '16px'}} 
-                    value={character.age}
-                    onChange={(e) => handleInputChange('age', parseInt(e.target.value))}
-                  />
-                  <span style={{fontSize: '18px', fontWeight: '500'}}>{character.age}</span>
-                </div>
-                <span style={{fontSize: '12px', color: '#666'}}>Seçmen üzerinde etki</span>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Cinsiyet</label>
-                <select 
-                  className="form-select"
-                  value={character.gender}
-                  onChange={(e) => handleInputChange('gender', e.target.value)}
-                >
-                  <option value="Erkek">Erkek</option>
-                  <option value="Kadın">Kadın</option>
-                </select>
-                <span style={{fontSize: '12px', color: '#666'}}>Toplum algısı ve etkisi</span>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Doğduğu İl</label>
-                <select 
-                  className="form-select"
-                  value={character.birthPlace}
-                  onChange={(e) => handleInputChange('birthPlace', e.target.value)}
-                >
-                  <option value="">Seçiniz</option>
-                  {cities.map(city => (
-                    <option key={city.code} value={city.code}>{city.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Meslek</label>
-                <select 
-                  className="form-select"
-                  value={character.profession}
-                  onChange={(e) => handleInputChange('profession', e.target.value)}
-                >
-                  <option value="">Seçiniz</option>
-                  {professions.map(prof => (
-                    <option key={prof.name} value={prof.name}>{prof.name} (₺{prof.salary.toLocaleString()})</option>
-                  ))}
-                </select>
-                <span style={{fontSize: '12px', color: '#666'}}>Bir mevkiye gelene kadar bu işten para kazanmaya devam edebilir</span>
-              </div>
-            </div>
-            
-            <h3 className="section-title" style={{marginTop: '20px'}}>İdeoloji</h3>
-            
-            {/* Ana İdeolojik Pozisyon */}
-            <div className="ideology-container" style={{marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px'}}>
-              <h4 style={{fontSize: '18px', fontWeight: '500', marginBottom: '12px'}}>Genel İdeolojik Konum</h4>
-              <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px'}}>
-                <span>Sol</span>
-                <span>Merkez Sol</span>
-                <span>Merkez</span>
-                <span>Merkez Sağ</span>
-                <span>Sağ</span>
-              </div>
-              <div style={{position: 'relative', marginBottom: '8px'}}>
-                <div 
-                  style={{
-                    width: '100%', 
-                    height: '16px', 
-                    borderRadius: '8px',
-                    background: "linear-gradient(to right, #d32f2f 0%, #7b1fa2 50%, #1976d2 100%)"
-                  }}
-                ></div>
-                <div 
-                  style={{
-                    position: 'absolute', 
-                    top: '0', 
-                    width: '4px', 
-                    height: '16px', 
-                    backgroundColor: 'white', 
-                    borderRadius: '2px', 
-                    border: '1px solid black',
-                    left: `${character.ideology.overallPosition}%`, 
-                    transform: 'translateX(-50%)'
-                  }}
-                ></div>
-              </div>
-              <div style={{textAlign: 'center', fontWeight: '600', marginTop: '8px'}}>
-                {getIdeologicalLabel(character.ideology.overallPosition)}
-              </div>
-            </div>
-            
-            {/* İdeoloji Eksenleri */}
+      <div className="character-content">
+        {/* Tab Menüsü */}
+        <div className="tab-menu">
+          <button 
+            className={`tab-button ${currentTab === 0 ? 'active' : ''}`}
+            onClick={() => changeTab(0)}
+          >
+            Temel Bilgiler ve İdeoloji
+          </button>
+          <button 
+            className={`tab-button ${currentTab === 1 ? 'active' : ''}`}
+            onClick={() => changeTab(1)}
+          >
+            Karakter Özellikleri
+          </button>
+        </div>
+        
+        {/* Tab İçeriği */}
+        <div className="tab-content">
+          {/* Tab 1: Temel Bilgiler ve İdeoloji */}
+          {currentTab === 0 && (
             <div>
-              {Object.entries(ideologyAxes).map(([axis, data]) => (
-                <div key={axis} style={{marginBottom: '16px'}}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
-                    <label style={{fontWeight: '500'}}>{data.name} Ekseni</label>
-                    <span style={{fontWeight: '500'}}>{getPositionName(axis, character.ideology[axis])}</span>
+              <h3 className="section-title">Temel Bilgiler</h3>
+              <div className="character-info-grid">
+                <div className="form-group">
+                  <label className="form-label">Oyun Adı</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={character.gameName}
+                    onChange={(e) => handleInputChange('gameName', e.target.value)}
+                    placeholder="Oyunun kayıt olacağı adını girin"
+                  />
+                  <div className="form-description">Boş bırakırsanız otomatik oluşturulacaktır</div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ad ve Soyad</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={character.fullName}
+                    onChange={(e) => handleInputChange('fullName', e.target.value)}
+                    placeholder="Diyaloglar ve medyada gözükecek"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Yaş</label>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                    <input 
+                      type="range" 
+                      min="25" 
+                      max="75" 
+                      style={{flex: 1}} 
+                      value={character.age}
+                      onChange={(e) => handleInputChange('age', parseInt(e.target.value))}
+                    />
+                    <span style={{fontSize: '1.1rem', fontWeight: '500', minWidth: '2rem'}}>{character.age}</span>
                   </div>
-                  <div style={{width: '92%', margin: '0 auto'}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px'}}>
-                      {data.positions.map((position, index) => (
-                        <span key={index} style={{width: `${100/data.positions.length}%`, textAlign: 'center'}}>{position}</span>
+                  <div className="form-description">Seçmen üzerinde etki sağlar</div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Cinsiyet</label>
+                  <select 
+                    className="form-select"
+                    value={character.gender}
+                    onChange={(e) => handleInputChange('gender', e.target.value)}
+                  >
+                    <option value="Erkek">Erkek</option>
+                    <option value="Kadın">Kadın</option>
+                  </select>
+                  <div className="form-description">Toplum algısı ve etkisi farklılık gösterebilir</div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Doğduğu İl</label>
+                  <select 
+                    className="form-select"
+                    value={character.birthPlace}
+                    onChange={(e) => handleInputChange('birthPlace', e.target.value)}
+                  >
+                    <option value="">Seçiniz</option>
+                    {cities.map(city => (
+                      <option key={city.code} value={city.code}>{city.name}</option>
+                    ))}
+                  </select>
+                  <div className="form-description">Bölgesel bağlantıları etkiler</div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Meslek</label>
+                  <select 
+                    className="form-select"
+                    value={character.profession}
+                    onChange={(e) => handleInputChange('profession', e.target.value)}
+                  >
+                    <option value="">Seçiniz</option>
+                    {professions.map(prof => (
+                      <option key={prof.name} value={prof.name}>{prof.name} (₺{prof.salary.toLocaleString()})</option>
+                    ))}
+                  </select>
+                  <div className="form-description">Bir mevkiye gelene kadar bu işten para kazanmaya devam edebilirsiniz</div>
+                </div>
+              </div>
+              
+              <h3 className="section-title">İdeoloji</h3>
+              
+              {/* Ana İdeolojik Pozisyon */}
+              <div className="ideology-container">
+                <h4>Genel İdeolojik Konum</h4>
+                <div className="ideology-labels">
+                  <span>Sol</span>
+                  <span>Merkez Sol</span>
+                  <span>Merkez</span>
+                  <span>Merkez Sağ</span>
+                  <span>Sağ</span>
+                </div>
+                <div style={{position: 'relative', marginBottom: '1rem'}}>
+                  <div 
+                    style={{
+                      width: '100%', 
+                      height: '10px', 
+                      borderRadius: '5px',
+                      background: "linear-gradient(to right, #d32f2f 0%, #7b1fa2 25%, #1976d2 50%, #ff9100 75%, #388e3c 100%)"
+                    }}
+                  ></div>
+                  <div 
+                    style={{
+                      position: 'absolute', 
+                      top: '0', 
+                      width: '5px', 
+                      height: '10px', 
+                      backgroundColor: 'white', 
+                      borderRadius: '2px', 
+                      border: '1px solid black',
+                      left: `${character.ideology.overallPosition}%`, 
+                      transform: 'translateX(-50%)'
+                    }}
+                  ></div>
+                </div>
+                <div className="overall-ideology">
+                  {getIdeologicalLabel(character.ideology.overallPosition)}
+                </div>
+              </div>
+              
+              {/* İdeoloji Eksenleri */}
+              <div>
+                {Object.entries(ideologyAxes).map(([axis, data]) => (
+                  <div key={axis} className="ideology-axis">
+                    <div className="ideology-header">
+                      <label>{data.name} Ekseni</label>
+                      <span className="ideology-position">{getPositionName(axis, character.ideology[axis])}</span>
+                    </div>
+                    <div className="ideology-labels">
+                      {data.positions.map((position, idx) => (
+                        <span key={idx}>{position}</span>
                       ))}
                     </div>
                     <input 
@@ -481,206 +402,234 @@ const CharacterCreator = () => {
                       onChange={(e) => handleIdeologyChange(axis, parseInt(e.target.value))}
                     />
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Tab 2: Karakter Özellikleri */}
-        {currentTab === 1 && (
-          <div>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
-              <h3 className="section-title">Karakter Özellikleri</h3>
-              <div className={`points-display ${remainingStatPoints >= 0 ? 'points-positive' : 'points-negative'}`}>
-                Kalan Puan: {remainingStatPoints}
+                ))}
               </div>
             </div>
-            <p style={{fontSize: '14px', color: '#666', marginBottom: '16px'}}>Başlangıçta toplam 35 puanlık bir dağıtım yapabilirsiniz. Her özellik 1-10 arası değer alır.</p>
-            
+          )}
+          
+          {/* Tab 2: Karakter Özellikleri */}
+          {currentTab === 1 && (
             <div>
-              {/* Hitabet */}
-              <div className="stat-container">
-                <div className="stat-header">
-                  <label style={{fontWeight: '500'}}>Hitabet</label>
-                  <div className="stat-controls">
-                    <button 
-                      className="stat-btn stat-decrease"
-                      onClick={() => handleStatChange('hitabet', character.stats.hitabet - 1)}
-                      disabled={character.stats.hitabet <= 1}
-                    >-</button>
-                    <span className="stat-value">{character.stats.hitabet}</span>
-                    <button 
-                      className="stat-btn stat-increase"
-                      onClick={() => handleStatChange('hitabet', character.stats.hitabet + 1)}
-                      disabled={character.stats.hitabet >= 10 || remainingStatPoints <= 0}
-                    >+</button>
-                  </div>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
+                <h3 className="section-title" style={{margin: 0}}>Karakter Özellikleri</h3>
+                <div className={`points-display ${remainingStatPoints >= 0 ? 'points-positive' : 'points-negative'}`}>
+                  Kalan Puan: {remainingStatPoints}
                 </div>
-                <p style={{fontSize: '14px', color: '#666'}}>Hitabet ve tartışma becerisi (Konuşmalar, beyanlar, mitingler, tv programları)</p>
+              </div>
+              <p style={{fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '1rem'}}>
+                Başlangıçta toplam 35 puanlık bir dağıtım yapabilirsiniz. Her özellik 1-10 arası değer alır.
+              </p>
+              
+              <div>
+                {/* Hitabet */}
+                <div className="stat-container">
+                  <div className="stat-header">
+                    <label>Hitabet</label>
+                    <div className="stat-controls">
+                      <button 
+                        className="stat-btn stat-decrease"
+                        onClick={() => handleStatChange('hitabet', character.stats.hitabet - 1)}
+                        disabled={character.stats.hitabet <= 1}
+                      >-</button>
+                      <span className="stat-value">{character.stats.hitabet}</span>
+                      <button 
+                        className="stat-btn stat-increase"
+                        onClick={() => handleStatChange('hitabet', character.stats.hitabet + 1)}
+                        disabled={character.stats.hitabet >= 10 || remainingStatPoints <= 0}
+                      >+</button>
+                    </div>
+                  </div>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.5rem 0 0 0'}}>
+                    Hitabet ve tartışma becerisi (Konuşmalar, beyanlar, mitingler, tv programları)
+                  </p>
+                </div>
+                
+                {/* Karizma */}
+                <div className="stat-container">
+                  <div className="stat-header">
+                    <label>Karizma</label>
+                    <div className="stat-controls">
+                      <button 
+                        className="stat-btn stat-decrease"
+                        onClick={() => handleStatChange('karizma', character.stats.karizma - 1)}
+                        disabled={character.stats.karizma <= 1}
+                      >-</button>
+                      <span className="stat-value">{character.stats.karizma}</span>
+                      <button 
+                        className="stat-btn stat-increase"
+                        onClick={() => handleStatChange('karizma', character.stats.karizma + 1)}
+                        disabled={character.stats.karizma >= 10 || remainingStatPoints <= 0}
+                      >+</button>
+                    </div>
+                  </div>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.5rem 0 0 0'}}>
+                    Halkla ilişkiler, sevilebilirlik (Oy oranı artışı, medya ilgisi)
+                  </p>
+                </div>
+                
+                {/* Zeka */}
+                <div className="stat-container">
+                  <div className="stat-header">
+                    <label>Zeka</label>
+                    <div className="stat-controls">
+                      <button 
+                        className="stat-btn stat-decrease"
+                        onClick={() => handleStatChange('zeka', character.stats.zeka - 1)}
+                        disabled={character.stats.zeka <= 1}
+                      >-</button>
+                      <span className="stat-value">{character.stats.zeka}</span>
+                      <button 
+                        className="stat-btn stat-increase"
+                        onClick={() => handleStatChange('zeka', character.stats.zeka + 1)}
+                        disabled={character.stats.zeka >= 10 || remainingStatPoints <= 0}
+                      >+</button>
+                    </div>
+                  </div>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.5rem 0 0 0'}}>
+                    Analiz yeteneği (Yasa yazımı, ekonomi yönetimi)
+                  </p>
+                </div>
+                
+                {/* Liderlik */}
+                <div className="stat-container">
+                  <div className="stat-header">
+                    <label>Liderlik</label>
+                    <div className="stat-controls">
+                      <button 
+                        className="stat-btn stat-decrease"
+                        onClick={() => handleStatChange('liderlik', character.stats.liderlik - 1)}
+                        disabled={character.stats.liderlik <= 1}
+                      >-</button>
+                      <span className="stat-value">{character.stats.liderlik}</span>
+                      <button 
+                        className="stat-btn stat-increase"
+                        onClick={() => handleStatChange('liderlik', character.stats.liderlik + 1)}
+                        disabled={character.stats.liderlik >= 10 || remainingStatPoints <= 0}
+                      >+</button>
+                    </div>
+                  </div>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.5rem 0 0 0'}}>
+                    Parti içi etki gücü (parti disiplini, grup kararı)
+                  </p>
+                </div>
+                
+                {/* Direnç */}
+                <div className="stat-container">
+                  <div className="stat-header">
+                    <label>Direnç</label>
+                    <div className="stat-controls">
+                      <button 
+                        className="stat-btn stat-decrease"
+                        onClick={() => handleStatChange('direnc', character.stats.direnc - 1)}
+                        disabled={character.stats.direnc <= 1}
+                      >-</button>
+                      <span className="stat-value">{character.stats.direnc}</span>
+                      <button 
+                        className="stat-btn stat-increase"
+                        onClick={() => handleStatChange('direnc', character.stats.direnc + 1)}
+                        disabled={character.stats.direnc >= 10 || remainingStatPoints <= 0}
+                      >+</button>
+                    </div>
+                  </div>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.5rem 0 0 0'}}>
+                    Krizlere karşı dayanıklılık (Skandal/saldırı savunması)
+                  </p>
+                </div>
+                
+                {/* İdeolojik Tutarlılık */}
+                <div className="stat-container">
+                  <div className="stat-header">
+                    <label>İdeolojik Tutarlılık</label>
+                    <div className="stat-controls">
+                      <button 
+                        className="stat-btn stat-decrease"
+                        onClick={() => handleStatChange('ideolojikTutarlilik', character.stats.ideolojikTutarlilik - 1)}
+                        disabled={character.stats.ideolojikTutarlilik <= 1}
+                      >-</button>
+                      <span className="stat-value">{character.stats.ideolojikTutarlilik}</span>
+                      <button 
+                        className="stat-btn stat-increase"
+                        onClick={() => handleStatChange('ideolojikTutarlilik', character.stats.ideolojikTutarlilik + 1)}
+                        disabled={character.stats.ideolojikTutarlilik >= 10 || remainingStatPoints <= 0}
+                      >+</button>
+                    </div>
+                  </div>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.5rem 0 0 0'}}>
+                    Seçmenle bağ (Seçmen sadakati, parti çizgisi)
+                  </p>
+                </div>
+                
+                {/* Taktik Zekâ */}
+                <div className="stat-container">
+                  <div className="stat-header">
+                    <label>Taktik Zekâ</label>
+                    <div className="stat-controls">
+                      <button 
+                        className="stat-btn stat-decrease"
+                        onClick={() => handleStatChange('taktikZeka', character.stats.taktikZeka - 1)}
+                        disabled={character.stats.taktikZeka <= 1}
+                      >-</button>
+                      <span className="stat-value">{character.stats.taktikZeka}</span>
+                      <button 
+                        className="stat-btn stat-increase"
+                        onClick={() => handleStatChange('taktikZeka', character.stats.taktikZeka + 1)}
+                        disabled={character.stats.taktikZeka >= 10 || remainingStatPoints <= 0}
+                      >+</button>
+                    </div>
+                  </div>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.5rem 0 0 0'}}>
+                    Politika yapma becerisi (Koalisyon, kulis, ihale ayarları)
+                  </p>
+                </div>
               </div>
               
-              {/* Karizma */}
-              <div className="stat-container">
-                <div className="stat-header">
-                  <label style={{fontWeight: '500'}}>Karizma</label>
-                  <div className="stat-controls">
-                    <button 
-                      className="stat-btn stat-decrease"
-                      onClick={() => handleStatChange('karizma', character.stats.karizma - 1)}
-                      disabled={character.stats.karizma <= 1}
-                    >-</button>
-                    <span className="stat-value">{character.stats.karizma}</span>
-                    <button 
-                      className="stat-btn stat-increase"
-                      onClick={() => handleStatChange('karizma', character.stats.karizma + 1)}
-                      disabled={character.stats.karizma >= 10 || remainingStatPoints <= 0}
-                    >+</button>
-                  </div>
-                </div>
-                <p style={{fontSize: '14px', color: '#666'}}>Halkla ilişkiler, sevilebilirlik (Oy oranı artışı, medya ilgisi)</p>
-              </div>
-              
-              {/* Zeka */}
-              <div className="stat-container">
-                <div className="stat-header">
-                  <label style={{fontWeight: '500'}}>Zeka</label>
-                  <div className="stat-controls">
-                    <button 
-                      className="stat-btn stat-decrease"
-                      onClick={() => handleStatChange('zeka', character.stats.zeka - 1)}
-                      disabled={character.stats.zeka <= 1}
-                    >-</button>
-                    <span className="stat-value">{character.stats.zeka}</span>
-                    <button 
-                      className="stat-btn stat-increase"
-                      onClick={() => handleStatChange('zeka', character.stats.zeka + 1)}
-                      disabled={character.stats.zeka >= 10 || remainingStatPoints <= 0}
-                    >+</button>
-                  </div>
-                </div>
-                <p style={{fontSize: '14px', color: '#666'}}>Analiz yeteneği (Yasa yazımı, ekonomi yönetimi)</p>
-              </div>
-              
-              {/* Liderlik */}
-              <div className="stat-container">
-                <div className="stat-header">
-                  <label style={{fontWeight: '500'}}>Liderlik</label>
-                  <div className="stat-controls">
-                    <button 
-                      className="stat-btn stat-decrease"
-                      onClick={() => handleStatChange('liderlik', character.stats.liderlik - 1)}
-                      disabled={character.stats.liderlik <= 1}
-                    >-</button>
-                    <span className="stat-value">{character.stats.liderlik}</span>
-                    <button 
-                      className="stat-btn stat-increase"
-                      onClick={() => handleStatChange('liderlik', character.stats.liderlik + 1)}
-                      disabled={character.stats.liderlik >= 10 || remainingStatPoints <= 0}
-                    >+</button>
-                  </div>
-                </div>
-                <p style={{fontSize: '14px', color: '#666'}}>Parti içi etki gücü (parti disiplini, grup kararı)</p>
-              </div>
-              
-              {/* Direnç */}
-              <div className="stat-container">
-                <div className="stat-header">
-                  <label style={{fontWeight: '500'}}>Direnç</label>
-                  <div className="stat-controls">
-                    <button 
-                      className="stat-btn stat-decrease"
-                      onClick={() => handleStatChange('direnc', character.stats.direnc - 1)}
-                      disabled={character.stats.direnc <= 1}
-                    >-</button>
-                    <span className="stat-value">{character.stats.direnc}</span>
-                    <button 
-                      className="stat-btn stat-increase"
-                      onClick={() => handleStatChange('direnc', character.stats.direnc + 1)}
-                      disabled={character.stats.direnc >= 10 || remainingStatPoints <= 0}
-                    >+</button>
-                  </div>
-                </div>
-                <p style={{fontSize: '14px', color: '#666'}}>Krizlere karşı dayanıklılık (Skandal/saldırı savunması)</p>
-              </div>
-              
-              {/* İdeolojik Tutarlılık */}
-              <div className="stat-container">
-                <div className="stat-header">
-                  <label style={{fontWeight: '500'}}>İdeolojik Tutarlılık</label>
-                  <div className="stat-controls">
-                    <button 
-                      className="stat-btn stat-decrease"
-                      onClick={() => handleStatChange('ideolojikTutarlilik', character.stats.ideolojikTutarlilik - 1)}
-                      disabled={character.stats.ideolojikTutarlilik <= 1}
-                    >-</button>
-                    <span className="stat-value">{character.stats.ideolojikTutarlilik}</span>
-                    <button 
-                      className="stat-btn stat-increase"
-                      onClick={() => handleStatChange('ideolojikTutarlilik', character.stats.ideolojikTutarlilik + 1)}
-                      disabled={character.stats.ideolojikTutarlilik >= 10 || remainingStatPoints <= 0}
-                    >+</button>
-                  </div>
-                </div>
-                <p style={{fontSize: '14px', color: '#666'}}>Seçmenle bağ (Seçmen sadakati, parti çizgisi)</p>
-              </div>
-              
-              {/* Taktik Zekâ */}
-              <div className="stat-container">
-                <div className="stat-header">
-                  <label style={{fontWeight: '500'}}>Taktik Zekâ</label>
-                  <div className="stat-controls">
-                    <button 
-                      className="stat-btn stat-decrease"
-                      onClick={() => handleStatChange('taktikZeka', character.stats.taktikZeka - 1)}
-                      disabled={character.stats.taktikZeka <= 1}
-                    >-</button>
-                    <span className="stat-value">{character.stats.taktikZeka}</span>
-                    <button 
-                      className="stat-btn stat-increase"
-                      onClick={() => handleStatChange('taktikZeka', character.stats.taktikZeka + 1)}
-                      disabled={character.stats.taktikZeka >= 10 || remainingStatPoints <= 0}
-                    >+</button>
-                  </div>
-                </div>
-                <p style={{fontSize: '14px', color: '#666'}}>Politika yapma becerisi (Koalisyon, kulis, ihale ayarları)</p>
+              <div className="info-box">
+                <h4 style={{fontSize: '1rem', margin: '0 0 0.75rem 0', color: 'rgba(0, 200, 255, 0.8)'}}>Dinamik Değerler</h4>
+                <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.75rem'}}>
+                  Bu değerler oyun içindeki eylemlerinize bağlı olarak değişecektir. Karakter inceleme menüsünde görüntülenecektir.
+                </p>
+                <ul style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', paddingLeft: '1.5rem', margin: 0}}>
+                  <li style={{marginBottom: '0.3rem'}}><strong>Sadakat:</strong> Parti liderine veya ideolojiye olan bağlılık</li>
+                  <li style={{marginBottom: '0.3rem'}}><strong>Tecrübe:</strong> Zamanla görev yaparak kazanılır</li>
+                  <li style={{marginBottom: '0.3rem'}}><strong>Popülerlik:</strong> Kamuoyunda tanınırlık</li>
+                  <li style={{marginBottom: '0.3rem'}}><strong>Prestij:</strong> Başarılı görevler, skandallardan kaçınma ile kazanılır</li>
+                  <li><strong>İmaj:</strong> Medyada nasıl sunulduğuna göre şekillenir</li>
+                </ul>
               </div>
             </div>
-            
-            <div className="info-box">
-              <h4 style={{fontSize: '16px', fontWeight: '500', marginBottom: '8px'}}>Dinamik Değerler</h4>
-              <p style={{fontSize: '14px', color: '#666', marginBottom: '12px'}}>Bu değerler oyun içindeki eylemlerinize bağlı olarak değişecektir. Karakter inceleme menüsünde görüntülenecektir.</p>
-              <ul style={{fontSize: '14px', color: '#444'}}>
-                <li style={{marginBottom: '4px'}}>• <strong>Sadakat:</strong> Parti liderine veya ideolojiye olan bağlılık</li>
-                <li style={{marginBottom: '4px'}}>• <strong>Tecrübe:</strong> Zamanla görev yaparak kazanılır</li>
-                <li style={{marginBottom: '4px'}}>• <strong>Popülerlik:</strong> Kamuoyunda tanınırlık</li>
-                <li style={{marginBottom: '4px'}}>• <strong>Prestij:</strong> Başarılı görevler, skandallardan kaçınma ile kazanılır</li>
-                <li>• <strong>İmaj:</strong> Medyada nasıl sunulduğuna göre şekillenir</li>
-              </ul>
-            </div>
-          </div>
-        )}
-        
-        {/* İlerle veya Karakter Oluşturma Düğmesi */}
-        <div className="btn-container">
-          {currentTab === 0 ? (
-            <button 
-              className="btn"
-              onClick={proceedToNextTab}
-              disabled={!character.fullName || !character.birthPlace || !character.profession}
-            >
-              İlerle
-            </button>
-          ) : (
-            <button 
-              className="btn"
-              onClick={createCharacter}
-              disabled={remainingStatPoints < 0 || loading}
-            >
-              {loading ? "İşleniyor..." : "Karakteri Oluştur"}
-            </button>
           )}
         </div>
+      </div>
+      
+      <div className="character-footer">
+        <button className="btn btn-secondary" onClick={handleGoBack}>
+          Geri
+        </button>
+        
+        {currentTab === 0 ? (
+          <button 
+            className={`btn btn-primary ${character.fullName && character.birthPlace && character.profession ? 'btn-pulse' : ''}`}
+            onClick={proceedToNextTab}
+            disabled={!character.fullName || !character.birthPlace || !character.profession}
+          >
+            İlerle
+          </button>
+        ) : (
+          <button 
+            className="btn btn-primary"
+            onClick={createCharacter}
+            disabled={remainingStatPoints < 0 || loading}
+          >
+            {loading ? (
+              <>
+                <div className="loading-spinner"></div>
+                <span>İşleniyor...</span>
+              </>
+            ) : (
+              "Karakteri Oluştur"
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

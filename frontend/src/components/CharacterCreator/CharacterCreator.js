@@ -269,7 +269,7 @@ const CharacterCreator = () => {
       }
       
       // Karakter verisini MySQL'e kaydet
-      const response = await axios.post('http://localhost:5001/api/game/create-character', 
+      const response = await axios.post('https://api.turkiyesiyaseti.net/api/game/create-character', 
         { character },
         {
           headers: {

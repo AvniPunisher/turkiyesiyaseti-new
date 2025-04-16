@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Yapılandırma
 const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5001',
+  BASE_URL: 'https://api.turkiyesiyaseti.net',
   TIMEOUT: 10000, // 10 saniye
   HEADERS: {
     'Content-Type': 'application/json',

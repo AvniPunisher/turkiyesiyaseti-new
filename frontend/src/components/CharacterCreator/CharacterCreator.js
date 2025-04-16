@@ -241,13 +241,12 @@ const CharacterCreator = () => {
         return;
       }
       
-      // API bağlantısını test et
-      const connectionTest = await apiHelper.testConnection();
-      if (!connectionTest.success) {
-        alert(`API bağlantı hatası: ${connectionTest.message}`);
-        console.error("API bağlantı hatası:", connectionTest.error);
-        setLoading(false);
-        return;
+      // Karakter verilerini localStorage'a da kaydet
+      // böylece API hatası olsa bile parti oluşturmada kullanabiliriz
+      try {
+        localStorage.setItem('characterData', JSON.stringify(character));
+      } catch (e) {
+        console.error("Karakter verileri localStorage'a kaydedilemedi:", e);
       }
       
       // Karakter verisini API'ye gönder - Tüm yöntemleri dene

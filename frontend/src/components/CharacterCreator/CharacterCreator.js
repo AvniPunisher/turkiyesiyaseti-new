@@ -6,7 +6,6 @@ import './CharacterCreator.css';
 
 // API yardımcı servisi
 import apiHelper from '../../services/apiHelper';
-import { testApiEndpoints, createCharacterDirectly } from '../../utils/testApi';
 
 // JSON verileri
 import ideologyAxes from '../../data/ideologies.json';
@@ -249,80 +248,52 @@ const CharacterCreator = () => {
         console.error("Karakter verileri localStorage'a kaydedilemedi:", e);
       }
       
-      // Karakter verisini API'ye gönder - Tüm yöntemleri dene
-      let response;
+      // Karakter verisini API'ye gönder
       try {
-        // İlk yöntem: apiHelper ile
-        console.log("ApiHelper ile deneniyor...");
-        response = await apiHelper.post('/api/game/create-character', { character });
-        
-        // Başarısızsa veya 404 ise, diğer endpoint'leri dene
-        if (!response.success && (response.status === 404 || response.notFoundError)) {
-          console.log("İlk endpoint bulunamadı, alternatif endpoint'ler deneniyor...");
-          
-          // İkinci endpoint: /api/character/create
-          response = await apiHelper.post('/api/character/create', { character });
-          
-          // Hala başarısızsa, son bir endpoint dene
-          if (!response.success && (response.status === 404 || response.notFoundError)) {
-            console.log("İkinci endpoint bulunamadı, son endpoint deneniyor...");
-            response = await apiHelper.post('/api/create-character', { character });
-          }
-        }
-        
-        // Tüm apiHelper denemeleri başarısız olduysa doğrudan test et
-        if (!response.success) {
-          console.log("ApiHelper denemesi başarısız oldu, doğrudan test ediliyor...");
-          
-          // TestApi ile alternatif yöntemi dene
-          const directResponse = await createCharacterDirectly(
-            character, 
-            token, 
-            'https://api.turkiyesiyaseti.net'
-          );
-          
-          if (directResponse.success) {
-            console.log("Doğrudan API çağrısı başarılı!", directResponse);
-            response = directResponse;
-          } else {
-            console.log("Doğrudan API çağrısı da başarısız:", directResponse.message);
-          }
+        const response = await apiHelper.post('/api/game/create-character', { character });
+      
+        if (response.success) {
+          alert('Karakter başarıyla oluşturuldu!');
+          // Doğrudan parti oluşturma sayfasına yönlendir
+          navigate('/party-creator');
+        } else {
+          // API başarısız olsa bile devam et
+          console.error("API başarısız oldu, ancak devam ediyoruz:", response.message);
+          alert('Karakter bilgileri kaydedildi, parti oluşturmaya devam edebilirsiniz.');
+          navigate('/party-creator');
         }
       } catch (error) {
-        console.error("Tüm API istek yöntemleri başarısız:", error);
-        response = {
-          success: false,
-          status: 0,
-          message: "Tüm API bağlantı yöntemleri başarısız oldu. Lütfen API adresini kontrol edin.",
-          error
-        };
-      }
-      
-      if (response.success) {
-        alert('Karakter başarıyla oluşturuldu!');
-        // Doğrudan parti oluşturma sayfasına yönlendir
+        // API hatası olsa bile devam et
+        console.error("API hatası, ancak localStorage'a kaydettik:", error);
+        alert('Sunucu bağlantısında sorun var, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.');
         navigate('/party-creator');
-      } else {
-        // API yanıt hatası
-        if (response.authError) {
-          alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
-          navigate('/login', { state: { returnUrl: '/character-creator' } });
-        } else if (response.networkError) {
-          alert("Sunucuya bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin.");
-        } else if (response.notFoundError) {
-          alert(`API endpoint bulunamadı (404 hatası).\n\nÖNERİLEN ÇÖZÜMLER:\n1. Backend sunucunuzun çalıştığından emin olun\n2. API URL'sinin doğru olduğunu kontrol edin (şu an: https://api.turkiyesiyaseti.net)\n3. Backend geliştiricileriyle iletişime geçip "/api/game/create-character" endpoint'inin mevcut olduğundan emin olun`);
-          console.log("Lütfen backend geliştiricilerine bu hatayı bildirin.");
-        } else if (response.status === 500) {
-          console.error("Sunucu hatası detayları:", response.data);
-          alert("Sunucu hatası: API'de bir problem oluştu. Lütfen daha sonra tekrar deneyin.");
-        } else {
-          alert(`Karakter oluşturulurken bir hata oluştu: ${response.message}`);
-        }
-        console.error("API yanıt hatası:", response.error);
       }
     } catch (error) {
-      console.error("Beklenmeyen hata:", error);
-      alert(`Beklenmeyen bir hata oluştu: ${error.message}`);
+      console.error("Karakter oluşturma hatası:", error);
+      
+      // API bağlantı hatası
+      if (error.code === 'ERR_NETWORK') {
+        alert("Sunucuya bağlantı kurulamadı, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
+        navigate('/party-creator');
+      } 
+      // Token hatası
+      else if (error.response && error.response.status === 401) {
+        alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
+        localStorage.removeItem('token');
+        navigate('/login', { state: { returnUrl: '/character-creator' } });
+      }
+      // Sunucu hatası (500)
+      else if (error.response && error.response.status === 500) {
+        console.error("Sunucu hatası detayları:", error.response.data);
+        alert("Sunucu hatası, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
+        navigate('/party-creator');
+      }
+      // Diğer hatalar
+      else {
+        console.error("Hata detayları:", error.response?.data || error);
+        alert("Karakter oluşturulurken bir hata oluştu, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
+        navigate('/party-creator');
+      }
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ import apiHelper from '../../services/apiHelper';
 
 // JSON verileri
 import ideologyAxes from '../../data/ideologies.json';
+import partyColors from '../../data/partyColors.json';
 
 // Yardımcı renk kontrastı hesaplama fonksiyonu
 const getContrastColor = (hexColor) => {
@@ -317,7 +318,7 @@ const PartyCreator = () => {
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="Partinin tam adını girin"
                   />
-                  <div className="form-description">Örn: Halkın Demokrasi Partisi</div>
+                  <div className="form-description">Örn: Cumhuriyetçi Milli Parti</div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Kısa Ad</label>
@@ -330,13 +331,13 @@ const PartyCreator = () => {
                     maxLength={5}
                     style={{textTransform: 'uppercase'}}
                   />
-                  <div className="form-description">En fazla 5 karakter (Örn: HDP)</div>
+                  <div className="form-description">En fazla 5 karakter (Örn: CMP)</div>
                 </div>
               </div>
               
               <h3 className="section-title">Parti Rengi</h3>
               <div className="form-group">
-                <label className="form-label">Seçim ve Tanıtımlarda Kullanılacak Renk</label>
+                <label className="form-label">Özel Renk Seçimi</label>
                 <div className="color-picker-wrapper">
                   <input 
                     type="color" 
@@ -353,7 +354,24 @@ const PartyCreator = () => {
                 <div className="color-info">
                   <span>Renk Kodu: {party.colorId || "#d32f2f"}</span>
                 </div>
-                <div className="form-description">Partinizi temsil eden bir renk seçin</div>
+                
+                <div className="color-presets-title">Hazır Renk Seçenekleri</div>
+                <div className="color-picker-container">
+                  {partyColors.map((color) => (
+                    <div
+                      key={color.value}
+                      className={`color-option ${party.colorId === color.value ? 'selected' : ''}`}
+                      style={{ 
+                        backgroundColor: color.value,
+                        color: color.textColor
+                      }}
+                      onClick={() => handleColorSelect(color.value)}
+                      title={color.name}
+                    >
+                    </div>
+                  ))}
+                </div>
+                <div className="form-description">Partinizi temsil eden bir renk seçin veya hazır renk örneklerinden birini kullanın</div>
               </div>
               
               {/* Kurucuyu göster */}

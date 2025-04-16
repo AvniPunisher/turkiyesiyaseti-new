@@ -165,7 +165,7 @@ const SinglePlayer = () => {
       console.log("Karakter kontrol ediliyor...");
       
       // Veritabanından karakter bilgilerini çek
-      const response = await axios.get('https://api.turkiyesiyaseti.net/api/game/get-character', {
+      const response = await axios.get('http://localhost:5001/api/game/get-character', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -227,7 +227,7 @@ const SinglePlayer = () => {
       }
       
       // Oyun verisini veritabanına kaydet
-      const response = await axios.post('https://api.turkiyesiyaseti.net/api/game/save-game', {
+      const response = await axios.post('http://localhost:5000/api/game/save-game', {
         gameData,
         saveName: `${character.fullName}'in Oyunu`,
         saveSlot: 1
@@ -296,44 +296,51 @@ const SinglePlayer = () => {
           </GameOverlay>
         )}
         
-        {hasCharacter && !gameStarted && (
-          <GameOverlay>
-            <OverlayText>Oyunu Başlatmak İçin Hazır mısın?</OverlayText>
-            
-            <CharacterInfoCard>
-              <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'rgba(0, 200, 255, 0.8)' }}>
-                Karakter Bilgileri
-              </h3>
-              
-              <CharacterDetail>
-                <CharacterLabel>İsim:</CharacterLabel>
-                <span>{character.fullName}</span>
-              </CharacterDetail>
-              
-              <CharacterDetail>
-                <CharacterLabel>Yaş:</CharacterLabel>
-                <span>{character.age}</span>
-              </CharacterDetail>
-              
-              <CharacterDetail>
-                <CharacterLabel>Meslek:</CharacterLabel>
-                <span>{character.profession}</span>
-              </CharacterDetail>
-              
-              <CharacterDetail>
-                <CharacterLabel>İdeoloji:</CharacterLabel>
-                <span>{character.ideology ? 
-                  (character.ideology.overallPosition < 20 ? "Sol" :
-                   character.ideology.overallPosition < 40 ? "Merkez Sol" :
-                   character.ideology.overallPosition < 60 ? "Merkez" :
-                   character.ideology.overallPosition < 80 ? "Merkez Sağ" : "Sağ") 
-                  : "Bilinmiyor"}</span>
-              </CharacterDetail>
-            </CharacterInfoCard>
-            
-            <Button onClick={startGame}>Oyunu Başlat</Button>
-          </GameOverlay>
-        )}
+        // Aşağıdaki kodu karakteri olan ama henüz oyuna başlamamış kullanıcılara göstermek için
+// SinglePlayer.jsx dosyasındaki ilgili bölüme ekleyin
+
+{hasCharacter && !gameStarted && (
+  <GameOverlay>
+    <OverlayText>Oyunu Başlatmak İçin Hazır mısın?</OverlayText>
+    
+    <CharacterInfoCard>
+      <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'rgba(0, 200, 255, 0.8)' }}>
+        Karakter Bilgileri
+      </h3>
+      
+      <CharacterDetail>
+        <CharacterLabel>İsim:</CharacterLabel>
+        <span>{character.fullName}</span>
+      </CharacterDetail>
+      
+      <CharacterDetail>
+        <CharacterLabel>Yaş:</CharacterLabel>
+        <span>{character.age}</span>
+      </CharacterDetail>
+      
+      <CharacterDetail>
+        <CharacterLabel>Meslek:</CharacterLabel>
+        <span>{character.profession}</span>
+      </CharacterDetail>
+      
+      <CharacterDetail>
+        <CharacterLabel>İdeoloji:</CharacterLabel>
+        <span>{character.ideology ? 
+          (character.ideology.overallPosition < 20 ? "Sol" :
+            character.ideology.overallPosition < 40 ? "Merkez Sol" :
+            character.ideology.overallPosition < 60 ? "Merkez" :
+            character.ideology.overallPosition < 80 ? "Merkez Sağ" : "Sağ") 
+          : "Bilinmiyor"}</span>
+      </CharacterDetail>
+    </CharacterInfoCard>
+    
+    {/* Parti kurma veya oyunu başlatma seçenekleri */}
+    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+      <Button onClick={() => navigate('/party-creator')}>Parti Kur</Button>
+      <Button onClick={startGame}>Oyunu Başlat</Button>
+    </div>
+  </GameOverlay>
+)}
         
         {gamePaused && (
           <GameOverlay>

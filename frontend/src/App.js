@@ -8,6 +8,7 @@ import SinglePlayer from './components/SinglePlayer';
 import MultiPlayer from './components/MultiPlayer';
 import LoadGame from './components/LoadGame';
 import CharacterCreator from './components/CharacterCreator/CharacterCreator';
+import PartyCreator from './components/PartyCreator/PartyCreator';
 import GlobalStyle from './GlobalStyle';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/multi-player" element={<MultiPlayer />} />
         <Route path="/load-game" element={<LoadGame />} />
         <Route path="/character-creator" element={<CharacterCreator />} />
+        <Route path="/party-creator" element={<PartyCreator />} />
       </Routes>
     </Router>
   );

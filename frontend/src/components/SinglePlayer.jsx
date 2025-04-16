@@ -165,7 +165,7 @@ const SinglePlayer = () => {
       console.log("Karakter kontrol ediliyor...");
       
       // Veritabanından karakter bilgilerini çek
-      const response = await axios.get('http://localhost:5001/api/game/get-character', {
+      const response = await axios.get('https://api.turkiyesiyaseti.net/api/game/get-character', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -227,7 +227,7 @@ const SinglePlayer = () => {
       }
       
       // Oyun verisini veritabanına kaydet
-      const response = await axios.post('http://localhost:5000/api/game/save-game', {
+      const response = await axios.post('https://api.turkiyesiyaseti.net/api/game/save-game', {
         gameData,
         saveName: `${character.fullName}'in Oyunu`,
         saveSlot: 1

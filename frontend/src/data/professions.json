@@ -1,0 +1,17 @@
+[
+  { "name": "Avukat", "salary": 25000 },
+  { "name": "Doktor", "salary": 30000 },
+  { "name": "Öğretmen", "salary": 15000 },
+  { "name": "Mühendis", "salary": 22000 },
+  { "name": "İşletmeci", "salary": 18000 },
+  { "name": "Ekonomist", "salary": 20000 },
+  { "name": "Gazeteci", "salary": 17000 },
+  { "name": "İş İnsanı", "salary": 40000 },
+  { "name": "Akademisyen", "salary": 18000 },
+  { "name": "Bürokrat", "salary": 23000 },
+  { "name": "Askeri Personel", "salary": 19000 },
+  { "name": "STK Yöneticisi", "salary": 16000 },
+  { "name": "Sendikacı", "salary": 17000 },
+  { "name": "Din Görevlisi", "salary": 14000 },
+  { "name": "Serbest Meslek", "salary": 15000 }
+]

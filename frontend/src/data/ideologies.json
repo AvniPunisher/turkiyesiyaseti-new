@@ -1,0 +1,27 @@
+{
+  "economic": {
+    "name": "Ekonomik",
+    "positions": ["Devletçi", "Karma Ekonomi", "Merkez", "Liberal Ekonomi", "Serbest Piyasa"],
+    "weight": 1.2
+  },
+  "cultural": {
+    "name": "Kültürel",
+    "positions": ["İlerici/Batıcı", "Laik/Seküler", "Merkez", "Muhafazakar", "Dini Muhafazakar"],
+    "weight": 1.2
+  },
+  "diplomatic": {
+    "name": "Diplomatik",
+    "positions": ["Batı Yanlısı", "Denge Politikası", "Bağımsız Dış Politika", "Bölgesel Liderlik", "Yeni-Osmanlıcılık"],
+    "weight": 0.8
+  },
+  "social": {
+    "name": "Toplumsal",
+    "positions": ["Çoğulcu", "Cumhuriyetçi", "Merkez", "Türk Milliyetçisi", "Muhafazakar Milliyetçi"],
+    "weight": 1.0
+  },
+  "government": {
+    "name": "Hükümet",
+    "positions": ["Parlamenter", "Güçlendirilmiş Parlamentarizm", "Yarı Başkanlık", "Başkanlık", "Merkezi Otorite"],
+    "weight": 0.8
+  }
+}

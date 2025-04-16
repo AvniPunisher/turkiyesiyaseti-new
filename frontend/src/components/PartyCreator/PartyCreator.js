@@ -8,7 +8,23 @@ import apiHelper from '../../services/apiHelper';
 
 // JSON verileri
 import ideologyAxes from '../../data/ideologies.json';
-import partyColors from '../../data/partyColors.json';
+
+// Yardımcı renk kontrastı hesaplama fonksiyonu
+const getContrastColor = (hexColor) => {
+  // Varsayılan değer
+  if (!hexColor) return "#ffffff";
+  
+  // HEX'i RGB'ye dönüştür
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  
+  // Rengin parlaklığını hesapla (basit formül: 0.299R + 0.587G + 0.114B)
+  const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+  
+  // Parlaklık 128'den düşükse (0-255 aralığında) beyaz döndür, değilse siyah
+  return brightness < 128 ? "#ffffff" : "#000000";
+};
 
 const PartyCreator = () => {
   const navigate = useNavigate();
@@ -17,7 +33,7 @@ const PartyCreator = () => {
   const [party, setParty] = useState({
     name: '',
     shortName: '',
-    colorId: '',
+    colorId: '#d32f2f',
     // İdeoloji değerleri (0-100 arası)
     ideology: {
       economic: 50,
@@ -161,17 +177,17 @@ const PartyCreator = () => {
   };
 
   // Renk seçimi 
-  const handleColorSelect = (colorId) => {
+  const handleColorSelect = (color) => {
     setParty({
       ...party, 
-      colorId
+      colorId: color
     });
   };
 
   // Tab değiştirme fonksiyonu
   const changeTab = (tabIndex) => {
     // Tab değiştirme kontrolü
-    if (tabIndex === 1 && (!party.name || !party.shortName || !party.colorId)) {
+    if (tabIndex === 1 && (!party.name || !party.shortName)) {
       return; // Gerekli alanlar dolmadıysa tab değiştirme
     }
     setCurrentTab(tabIndex);
@@ -179,14 +195,14 @@ const PartyCreator = () => {
 
   // İlerle butonu ile tab 2'ye geçiş
   const proceedToNextTab = () => {
-    if (party.name && party.shortName && party.colorId) {
+    if (party.name && party.shortName) {
       setCurrentTab(1);
     }
   };
 
   // Seçilen renk bilgisini al
-  const getSelectedColor = () => {
-    return partyColors.find(color => color.value === party.colorId) || {};
+  const getTextColorForBadge = (hexColor) => {
+    return getContrastColor(hexColor);
   };
 
   // Parti oluşturma işlemi
@@ -321,20 +337,21 @@ const PartyCreator = () => {
               <h3 className="section-title">Parti Rengi</h3>
               <div className="form-group">
                 <label className="form-label">Seçim ve Tanıtımlarda Kullanılacak Renk</label>
-                <div className="color-picker-container">
-                  {partyColors.map((color) => (
-                    <div
-                      key={color.value}
-                      className={`color-option ${party.colorId === color.value ? 'selected' : ''}`}
-                      style={{ 
-                        backgroundColor: color.value,
-                        color: color.textColor
-                      }}
-                      onClick={() => handleColorSelect(color.value)}
-                      title={color.name}
-                    >
-                    </div>
-                  ))}
+                <div className="color-picker-wrapper">
+                  <input 
+                    type="color" 
+                    value={party.colorId || "#d32f2f"}
+                    onChange={(e) => handleColorSelect(e.target.value)}
+                    className="color-picker"
+                  />
+                  <div className="color-preview" style={{ backgroundColor: party.colorId || "#d32f2f" }}>
+                    <span style={{ color: getContrastColor(party.colorId || "#d32f2f") }}>
+                      Önizleme
+                    </span>
+                  </div>
+                </div>
+                <div className="color-info">
+                  <span>Renk Kodu: {party.colorId || "#d32f2f"}</span>
                 </div>
                 <div className="form-description">Partinizi temsil eden bir renk seçin</div>
               </div>
@@ -428,8 +445,8 @@ const PartyCreator = () => {
                   <div 
                     className="party-badge" 
                     style={{
-                      backgroundColor: party.colorId, 
-                      color: getSelectedColor().textColor
+                      backgroundColor: party.colorId || "#d32f2f", 
+                      color: getTextColorForBadge(party.colorId)
                     }}
                   >
                     {party.shortName}
@@ -474,9 +491,9 @@ const PartyCreator = () => {
         
         {currentTab === 0 ? (
           <button 
-            className={`btn btn-primary ${party.name && party.shortName && party.colorId ? 'btn-pulse' : ''}`}
+            className={`btn btn-primary ${party.name && party.shortName ? 'btn-pulse' : ''}`}
             onClick={proceedToNextTab}
-            disabled={!party.name || !party.shortName || !party.colorId}
+            disabled={!party.name || !party.shortName}
           >
             İlerle
           </button>

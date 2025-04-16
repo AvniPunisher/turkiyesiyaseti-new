@@ -216,7 +216,7 @@ const PartyCreator = () => {
       if (response.success) {
         alert('Parti başarıyla oluşturuldu!');
         // Oyun ekranına yönlendir
-        navigate('/single-player', { state: { party: response.data.party } });
+        navigate('/single-player');
       } else {
         // API yanıt hatası
         if (response.authError) {

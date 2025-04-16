@@ -6,6 +6,7 @@ import './CharacterCreator.css';
 
 // API yardımcı servisi
 import apiHelper from '../../services/apiHelper';
+import { testApiEndpoints, createCharacterDirectly } from '../../utils/testApi';
 
 // JSON verileri
 import ideologyAxes from '../../data/ideologies.json';
@@ -62,10 +63,66 @@ const CharacterCreator = () => {
   const [remainingStatPoints, setRemainingStatPoints] = useState(0);
   const totalStatPoints = 35;
   
+  // Stat puanlarını hesapla
   useEffect(() => {
     const usedPoints = Object.values(character.stats).reduce((total, stat) => total + stat, 0);
     setRemainingStatPoints(totalStatPoints - usedPoints);
   }, [character.stats]);
+  
+  // Sayfa yüklendiğinde API bağlantısını test et
+  useEffect(() => {
+    const testApiConnection = async () => {
+      try {
+        // API bağlantısını test et
+        const result = await apiHelper.testConnection();
+        
+        if (!result.success) {
+          console.error("API bağlantı testi başarısız:", result.message);
+        } else {
+          console.log("API bağlantı testi başarılı:", result.message);
+          
+          // Endpoint'leri test et
+          await testApiEndpoints();
+        }
+      } catch (error) {
+        console.error("API bağlantı testi hatası:", error);
+      }
+    };
+    
+    // Farklı API endpoint'lerini test et
+    const testApiEndpoints = async () => {
+      const endpoints = [
+        '/api/game/create-character',
+        '/api/character/create',
+        '/api/create-character',
+        '/game/create-character'
+      ];
+      
+      console.log("API endpoint'lerini test ediyorum...");
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(`https://api.turkiyesiyaseti.net${endpoint}`, {
+            method: 'OPTIONS',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log(`Endpoint test: ${endpoint} - Status: ${response.status}`);
+          
+          // 404 olmayan bir endpoint bulduysan, bu doğru endpoint olabilir
+          if (response.status !== 404) {
+            console.log(`Olası çalışan endpoint bulundu: ${endpoint}`);
+          }
+        } catch (error) {
+          console.error(`Endpoint test hatası (${endpoint}):`, error);
+        }
+      }
+    };
+    
+    testApiConnection();
+  }, []);
 
   // İdeolojik etiketler
   const getIdeologicalLabel = (position) => {
@@ -193,13 +250,59 @@ const CharacterCreator = () => {
         return;
       }
       
-      // Karakter verisini API'ye gönder
-      const response = await apiHelper.post('/api/game/create-character', { character });
+      // Karakter verisini API'ye gönder - Tüm yöntemleri dene
+      let response;
+      try {
+        // İlk yöntem: apiHelper ile
+        console.log("ApiHelper ile deneniyor...");
+        response = await apiHelper.post('/api/game/create-character', { character });
+        
+        // Başarısızsa veya 404 ise, diğer endpoint'leri dene
+        if (!response.success && (response.status === 404 || response.notFoundError)) {
+          console.log("İlk endpoint bulunamadı, alternatif endpoint'ler deneniyor...");
+          
+          // İkinci endpoint: /api/character/create
+          response = await apiHelper.post('/api/character/create', { character });
+          
+          // Hala başarısızsa, son bir endpoint dene
+          if (!response.success && (response.status === 404 || response.notFoundError)) {
+            console.log("İkinci endpoint bulunamadı, son endpoint deneniyor...");
+            response = await apiHelper.post('/api/create-character', { character });
+          }
+        }
+        
+        // Tüm apiHelper denemeleri başarısız olduysa doğrudan test et
+        if (!response.success) {
+          console.log("ApiHelper denemesi başarısız oldu, doğrudan test ediliyor...");
+          
+          // TestApi ile alternatif yöntemi dene
+          const directResponse = await createCharacterDirectly(
+            character, 
+            token, 
+            'https://api.turkiyesiyaseti.net'
+          );
+          
+          if (directResponse.success) {
+            console.log("Doğrudan API çağrısı başarılı!", directResponse);
+            response = directResponse;
+          } else {
+            console.log("Doğrudan API çağrısı da başarısız:", directResponse.message);
+          }
+        }
+      } catch (error) {
+        console.error("Tüm API istek yöntemleri başarısız:", error);
+        response = {
+          success: false,
+          status: 0,
+          message: "Tüm API bağlantı yöntemleri başarısız oldu. Lütfen API adresini kontrol edin.",
+          error
+        };
+      }
       
       if (response.success) {
         alert('Karakter başarıyla oluşturuldu!');
-        // Oyun ekranına yönlendir
-        navigate('/single-player', { state: { character: response.data.character } });
+        // Doğrudan parti oluşturma sayfasına yönlendir
+        navigate('/party-creator');
       } else {
         // API yanıt hatası
         if (response.authError) {
@@ -207,6 +310,9 @@ const CharacterCreator = () => {
           navigate('/login', { state: { returnUrl: '/character-creator' } });
         } else if (response.networkError) {
           alert("Sunucuya bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin.");
+        } else if (response.notFoundError) {
+          alert(`API endpoint bulunamadı (404 hatası).\n\nÖNERİLEN ÇÖZÜMLER:\n1. Backend sunucunuzun çalıştığından emin olun\n2. API URL'sinin doğru olduğunu kontrol edin (şu an: https://api.turkiyesiyaseti.net)\n3. Backend geliştiricileriyle iletişime geçip "/api/game/create-character" endpoint'inin mevcut olduğundan emin olun`);
+          console.log("Lütfen backend geliştiricilerine bu hatayı bildirin.");
         } else if (response.status === 500) {
           console.error("Sunucu hatası detayları:", response.data);
           alert("Sunucu hatası: API'de bir problem oluştu. Lütfen daha sonra tekrar deneyin.");

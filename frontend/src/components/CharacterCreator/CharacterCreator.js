@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './CharacterCreator.css';
 
+// API yardımcı servisi
+import apiHelper from '../../services/apiHelper';
+
 // JSON verileri
 import ideologyAxes from '../../data/ideologies.json';
 import cities from '../../data/cities.json';
@@ -181,40 +184,40 @@ const CharacterCreator = () => {
         return;
       }
       
-      // Karakter verisini MySQL'e kaydet
-      const response = await axios.post('https://api.turkiyesiyaseti.net/api/game/create-character', 
-        { character },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      // API bağlantısını test et
+      const connectionTest = await apiHelper.testConnection();
+      if (!connectionTest.success) {
+        alert(`API bağlantı hatası: ${connectionTest.message}`);
+        console.error("API bağlantı hatası:", connectionTest.error);
+        setLoading(false);
+        return;
+      }
       
-      if (response.data.success) {
+      // Karakter verisini API'ye gönder
+      const response = await apiHelper.post('/api/game/create-character', { character });
+      
+      if (response.success) {
         alert('Karakter başarıyla oluşturuldu!');
         // Oyun ekranına yönlendir
         navigate('/single-player', { state: { character: response.data.character } });
       } else {
-        throw new Error(response.data.message || 'Karakter oluşturulurken bir hata oluştu');
+        // API yanıt hatası
+        if (response.authError) {
+          alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
+          navigate('/login', { state: { returnUrl: '/character-creator' } });
+        } else if (response.networkError) {
+          alert("Sunucuya bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin.");
+        } else if (response.status === 500) {
+          console.error("Sunucu hatası detayları:", response.data);
+          alert("Sunucu hatası: API'de bir problem oluştu. Lütfen daha sonra tekrar deneyin.");
+        } else {
+          alert(`Karakter oluşturulurken bir hata oluştu: ${response.message}`);
+        }
+        console.error("API yanıt hatası:", response.error);
       }
     } catch (error) {
-      console.error("Karakter oluşturma hatası:", error);
-      
-      // API bağlantı hatası
-      if (error.code === 'ERR_NETWORK') {
-        alert("Sunucuya bağlantı kurulamadı. Lütfen sunucunun çalıştığından emin olun.");
-      } 
-      // Token hatası
-      else if (error.response && error.response.status === 401) {
-        alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
-        localStorage.removeItem('token');
-        navigate('/login', { state: { returnUrl: '/character-creator' } });
-      }
-      // Diğer hatalar
-      else {
-        alert("Karakter oluşturulurken bir hata oluştu: " + (error.response?.data?.message || error.message));
-      }
+      console.error("Beklenmeyen hata:", error);
+      alert(`Beklenmeyen bir hata oluştu: ${error.message}`);
     } finally {
       setLoading(false);
     }

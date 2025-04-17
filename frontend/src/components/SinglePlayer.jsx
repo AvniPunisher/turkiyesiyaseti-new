@@ -209,9 +209,9 @@ const SinglePlayer = () => {
   }, [gameStarted, gamePaused]);
   
   const startGame = () => {
-    setGameStarted(true);
-    setGamePaused(false);
-  };
+  setGameStarted(true);
+  navigate('/game', { state: { character } }); // Karakter verilerini de aktarabilirsiniz
+};
   
   const pauseGame = () => {
     setGamePaused(!gamePaused);

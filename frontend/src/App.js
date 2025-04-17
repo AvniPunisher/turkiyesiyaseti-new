@@ -10,6 +10,8 @@ import LoadGame from './components/LoadGame';
 import CharacterCreator from './components/CharacterCreator/CharacterCreator';
 import PartyCreator from './components/PartyCreator/PartyCreator';
 import GlobalStyle from './GlobalStyle';
+import GameScreen from './components/GameScreen/GameScreen';
+
 
 function App() {
   return (
@@ -24,6 +26,7 @@ function App() {
         <Route path="/load-game" element={<LoadGame />} />
         <Route path="/character-creator" element={<CharacterCreator />} />
         <Route path="/party-creator" element={<PartyCreator />} />
+        <Route path="/game" element={<GameScreen />} />
       </Routes>
     </Router>
   );

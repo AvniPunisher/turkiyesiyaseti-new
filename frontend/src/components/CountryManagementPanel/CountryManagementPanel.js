@@ -3,9 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { X, User, BarChart2, BookOpen, FileText, Globe, Map, Activity } from 'lucide-react';
 import './CountryManagementPanel.css';
 
-// Bu bileşeni kullanmak için lucide-react kütüphanesini yüklemelisiniz:
-// npm install lucide-react
-
 const CountryManagementPanel = ({ 
   populationData, 
   parameters, 

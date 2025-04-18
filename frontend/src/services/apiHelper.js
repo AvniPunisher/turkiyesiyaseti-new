@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // API temel URL'si
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.turkiyesiyaseti.net';
 
 // API bağlantı durumunu test eden fonksiyon
 export const testApiConnection = async () => {

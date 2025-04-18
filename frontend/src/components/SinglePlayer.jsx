@@ -118,29 +118,6 @@ const LoadingText = styled.div`
   margin: 2rem 0;
 `;
 
-// Parti bilgisi bileşeni
-const PartyInfoCard = styled.div`
-  background: rgba(0, 30, 60, 0.7);
-  padding: 1.5rem;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 200, 255, 0.3);
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-  max-width: 500px;
-  width: 100%;
-`;
-
-const PartyBadge = styled.div`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: bold;
-  margin-right: 0.75rem;
-  font-size: 1rem;
-`;
-
 const SinglePlayer = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -153,76 +130,20 @@ const SinglePlayer = () => {
   const [gameData, setGameData] = useState({
     score: 0,
     level: 1,
-    hasParty: false,
-    party: null,
     // Diğer oyun verileri...
   });
   
-  // Renk kontrastı hesaplama yardımcı fonksiyonu
-  const getTextColorForBadge = (hexColor) => {
-    // Varsayılan değer
-    if (!hexColor) return "#ffffff";
-    
-    // HEX'i RGB'ye dönüştür
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
-    
-    // Rengin parlaklığını hesapla (basit formül: 0.299R + 0.587G + 0.114B)
-    const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
-    
-    // Parlaklık 128'den düşükse (0-255 aralığında) beyaz döndür, değilse siyah
-    return brightness < 128 ? "#ffffff" : "#000000";
-  };
-  
   // Oyun açılışında karakter kontrolü
   useEffect(() => {
-    // İlk olarak URL'den gelen tüm state bilgilerini kontrol et
-    if (location.state) {
-      // Karakter bilgisi geldi mi?
-      if (location.state.character) {
-        setCharacter(location.state.character);
-        setHasCharacter(true);
-        setIsLoading(false);
-        setAuthChecked(true);
-        return;
-      }
-      
-      // Parti oluşturularak mı gelindi?
-      if (location.state.partyCreated && location.state.partyData) {
-        console.log("Parti oluşturularak gelindi:", location.state.partyData);
-        
-        // localStorage'dan karakter bilgisini almayı dene
-        const characterData = localStorage.getItem('characterData');
-        if (characterData) {
-          try {
-            const parsedCharacter = JSON.parse(characterData);
-            setCharacter(parsedCharacter);
-            setHasCharacter(true);
-            setIsLoading(false);
-            setAuthChecked(true);
-            
-            // Oluşturulan parti verisi ile oyun verilerini güncelle
-            setGameData(prevData => ({
-              ...prevData,
-              party: location.state.partyData,
-              hasParty: true
-            }));
-            
-            return;
-          } catch (e) {
-            console.error("Karakter verisi ayrıştırılamadı:", e);
-          }
-        }
-      }
-      
-      // Kaydedilmiş oyun yükleme durumu mu?
-      if (location.state.loadedGame) {
-        console.log("Kayıtlı oyun yüklendi:", location.state.loadedGame);
-        // Burada kayıtlı oyun verilerini işleyebilirsiniz
-      }
+    // İlk olarak URL'den gelen karakter bilgisini kontrol et
+    if (location.state?.character) {
+      setCharacter(location.state.character);
+      setHasCharacter(true);
+      setIsLoading(false);
+      setAuthChecked(true);
+      return;
     }
-
+    
     // Kullanıcının giriş yapıp yapmadığını kontrol et
     const token = localStorage.getItem('token');
     
@@ -235,7 +156,7 @@ const SinglePlayer = () => {
     
     // Kullanıcı giriş yapmış, karakteri var mı kontrol et
     checkExistingCharacter(token);
-  }, [location, navigate]);
+  }, [location.pathname]); // sadece path değişirse çalışsın
   
   // Mevcut kaydedilmiş karakteri kontrol et
   const checkExistingCharacter = async (token) => {
@@ -254,48 +175,6 @@ const SinglePlayer = () => {
         console.log("Karakter bulundu:", response.data.character);
         setCharacter(response.data.character);
         setHasCharacter(true);
-        
-        // localStorage'da parti verisi var mı kontrol et
-        const partyData = localStorage.getItem('partyData');
-        if (partyData) {
-          try {
-            const parsedParty = JSON.parse(partyData);
-            console.log("Parti verisi bulundu:", parsedParty);
-            
-            // Oyun verilerine parti bilgilerini ekle
-            setGameData(prevData => ({
-              ...prevData,
-              party: parsedParty,
-              hasParty: true
-            }));
-          } catch (e) {
-            console.error("Parti verisi ayrıştırılamadı:", e);
-          }
-        } else {
-          // API'den parti verilerini almayı dene (isteğe bağlı)
-          try {
-            const partyResponse = await axios.get('http://localhost:5001/api/game/get-party', {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            });
-            
-            if (partyResponse.data.success && partyResponse.data.party) {
-              console.log("Parti API'den alındı:", partyResponse.data.party);
-              
-              setGameData(prevData => ({
-                ...prevData,
-                party: partyResponse.data.party,
-                hasParty: true
-              }));
-              
-              // localStorage'a da kaydet
-              localStorage.setItem('partyData', JSON.stringify(partyResponse.data.party));
-            }
-          } catch (partyError) {
-            console.error("Parti verisi alınamadı, bu normal olabilir:", partyError);
-          }
-        }
       } else {
         console.log("Karakter bulunamadı");
         setHasCharacter(false);
@@ -329,18 +208,15 @@ const SinglePlayer = () => {
     };
   }, [gameStarted, gamePaused]);
   
-  // Oyun başlatma
   const startGame = () => {
-    setGameStarted(true);
-    setGamePaused(false);
+    // Oyunu başlat ve dashboard'a yönlendir
+    navigate('/game-dashboard', { state: { character } });
   };
   
-  // Oyunu duraklatma/devam ettirme
   const pauseGame = () => {
     setGamePaused(!gamePaused);
   };
   
-  // Oyun kaydetme
   const saveGame = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -350,16 +226,9 @@ const SinglePlayer = () => {
         return;
       }
       
-      // Tüm oyun verisini birleştir (karakter ve parti dahil)
-      const completeGameData = {
-        ...gameData,
-        character: character,
-        saveDate: new Date().toISOString()
-      };
-      
       // Oyun verisini veritabanına kaydet
       const response = await axios.post('http://localhost:5000/api/game/save-game', {
-        gameData: completeGameData,
+        gameData,
         saveName: `${character.fullName}'in Oyunu`,
         saveSlot: 1
       }, {
@@ -379,19 +248,12 @@ const SinglePlayer = () => {
     }
   };
   
-  // Ana menüye dönme
   const returnToMenu = () => {
     navigate('/');
   };
   
-  // Karakter oluşturma sayfasına yönlendirme
   const createNewCharacter = () => {
     navigate('/character-creator');
-  };
-  
-  // Parti oluşturma sayfasına yönlendirme
-  const createNewParty = () => {
-    navigate('/party-creator');
   };
   
   if (isLoading) {
@@ -418,13 +280,7 @@ const SinglePlayer = () => {
         <GameTitle>Tek Oyunculu Mod</GameTitle>
         {character && gameStarted && (
           <div>
-            {character.fullName} | 
-            {gameData.hasParty && gameData.party && (
-              <span style={{ marginLeft: '0.5rem' }}>
-                {gameData.party.name} ({gameData.party.shortName})
-              </span>
-            )} | 
-            Skor: {gameData.score} | Seviye: {gameData.level}
+            {character.fullName} | Skor: {gameData.score} | Seviye: {gameData.level}
           </div>
         )}
       </GameHeader>
@@ -475,53 +331,10 @@ const SinglePlayer = () => {
               </CharacterDetail>
             </CharacterInfoCard>
             
-            {/* Parti bilgilerini göster */}
-            {gameData.hasParty && gameData.party && (
-              <PartyInfoCard>
-                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'rgba(0, 200, 255, 0.8)' }}>
-                  Parti Bilgileri
-                </h3>
-                
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                  <PartyBadge 
-                    style={{
-                      backgroundColor: gameData.party.colorId || "#d32f2f", 
-                      color: getTextColorForBadge(gameData.party.colorId)
-                    }}
-                  >
-                    {gameData.party.shortName}
-                  </PartyBadge>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{gameData.party.name}</span>
-                </div>
-                
-                <CharacterDetail>
-                  <CharacterLabel>İdeolojik Konum:</CharacterLabel>
-                  <span>{gameData.party.ideology ? 
-                    (gameData.party.ideology.overallPosition < 20 ? "Sol" :
-                      gameData.party.ideology.overallPosition < 40 ? "Merkez Sol" :
-                      gameData.party.ideology.overallPosition < 60 ? "Merkez" :
-                      gameData.party.ideology.overallPosition < 80 ? "Merkez Sağ" : "Sağ") 
-                    : "Bilinmiyor"}</span>
-                </CharacterDetail>
-                
-                <CharacterDetail>
-                  <CharacterLabel>Parti Lideri:</CharacterLabel>
-                  <span>{gameData.party.founderName || character.fullName}</span>
-                </CharacterDetail>
-              </PartyInfoCard>
-            )}
-            
             {/* Parti kurma veya oyunu başlatma seçenekleri */}
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              {!gameData.hasParty && (
-                <Button onClick={createNewParty}>Parti Kur</Button>
-              )}
-              <Button onClick={startGame} style={{ 
-                background: 'rgba(0, 150, 255, 0.7)',
-                boxShadow: '0 0 15px rgba(0, 200, 255, 0.5)'
-              }}>
-                Oyunu Başlat
-              </Button>
+              <Button onClick={() => navigate('/party-creator', { state: { character } })}>Parti Kur</Button>
+              <Button onClick={startGame}>Oyunu Başlat</Button>
             </div>
           </GameOverlay>
         )}
@@ -540,16 +353,6 @@ const SinglePlayer = () => {
         {gameStarted && !gamePaused && (
           <div style={{ fontSize: '1.5rem' }}>
             Oyun Alanı - Aktif Oyun
-            
-            {gameData.hasParty && gameData.party && (
-              <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(0, 30, 60, 0.7)', borderRadius: '10px' }}>
-                <h3 style={{ marginTop: 0, color: 'rgba(0, 200, 255, 0.8)' }}>
-                  {gameData.party.name} ({gameData.party.shortName})
-                </h3>
-                <p>Parti lideri: {gameData.party.founderName || character.fullName}</p>
-                {/* Burada oyun içeriğine parti verilerini dahil edebilirsiniz */}
-              </div>
-            )}
           </div>
         )}
       </GameCanvas>

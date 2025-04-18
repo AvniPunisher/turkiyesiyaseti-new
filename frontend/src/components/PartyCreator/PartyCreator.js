@@ -231,7 +231,7 @@ const PartyCreator = () => {
       
       // Parti verisini API'ye gönder
       // Doğrudan party route'unu kullan
-      const response = await apiHelper.post('/api/party/create-party', { party });
+      const response = await apiHelper.post('/api/game/create-party', { party });
       
       console.log("API yanıtı:", response);
 

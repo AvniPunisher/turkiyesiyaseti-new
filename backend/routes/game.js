@@ -1,184 +1,310 @@
 // backend/routes/game.js
-const express = require('express');
-const router = express.Router();
-const { pool } = require('../config/db');
-const auth = require('../middleware/auth');
+// Mevcut dosyanıza aşağıdaki endpoint'i ekleyin
 
-// KARAKTER İŞLEMLERİ
-// ------------------
-
-// Karakter oluştur veya güncelle
-router.post('/create-character', auth, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { character } = req.body;
-    
-    if (!character || !character.fullName || !character.birthPlace || !character.profession) {
-      return res.status(400).json({ success: false, message: 'Gerekli karakter bilgileri eksik' });
-    }
-    
-    // İlk olarak kullanıcının mevcut karakteri olup olmadığını kontrol et
-    const [existingCharacters] = await pool.execute(
-      'SELECT * FROM game_characters WHERE user_id = ?',
-      [userId]
-    );
-    
-    // İdeoloji ve statların JSON formatına çevrilmesi
-    const ideologyJson = JSON.stringify(character.ideology || {});
-    const statsJson = JSON.stringify(character.stats || {});
-    const dynamicValuesJson = JSON.stringify(character.dynamicValues || {});
-    const expertiseJson = JSON.stringify(character.expertise || []);
-    
-    if (existingCharacters.length > 0) {
-      // Mevcut karakteri güncelle
-      await pool.execute(
-        `UPDATE game_characters SET 
-         game_name = ?, full_name = ?, age = ?, gender = ?, birth_place = ?, profession = ?,
-         ideology = ?, stats = ?, dynamic_values = ?, expertise = ?,
-         updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = ?`,
-        [
-          character.gameName || `${character.fullName}'in Oyunu`,
-          character.fullName,
-          character.age || 40,
-          character.gender || 'Erkek',
-          character.birthPlace,
-          character.profession,
-          ideologyJson,
-          statsJson,
-          dynamicValuesJson,
-          expertiseJson,
-          userId
-        ]
-      );
-      
-      // Güncellenmiş karakteri al
-      const [updatedCharacter] = await pool.execute(
-        'SELECT * FROM game_characters WHERE user_id = ?',
-        [userId]
-      );
-      
-      // Döndürülecek karakter verisi
-      const characterData = prepareCharacterData(updatedCharacter[0]);
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Karakter başarıyla güncellendi',
-        character: characterData
-      });
-      
-    } else {
-      // Yeni karakter oluştur
-      await pool.execute(
-        `INSERT INTO game_characters 
-         (user_id, game_name, full_name, age, gender, birth_place, profession, ideology, stats, dynamic_values, expertise)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          userId,
-          character.gameName || `${character.fullName}'in Oyunu`,
-          character.fullName,
-          character.age || 40,
-          character.gender || 'Erkek',
-          character.birthPlace,
-          character.profession,
-          ideologyJson,
-          statsJson,
-          dynamicValuesJson,
-          expertiseJson
-        ]
-      );
-      
-      // Yeni oluşturulan karakteri al
-      const [newCharacter] = await pool.execute(
-        'SELECT * FROM game_characters WHERE user_id = ?',
-        [userId]
-      );
-      
-      // Döndürülecek karakter verisi
-      const characterData = prepareCharacterData(newCharacter[0]);
-      
-      return res.status(201).json({
-        success: true,
-        message: 'Karakter başarıyla oluşturuldu',
-        character: characterData
-      });
-    }
-    
-  } catch (error) {
-    console.error('Karakter oluşturma hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
-  }
-});
-
-// Karakteri getir
-router.get('/get-character', auth, async (req, res) => {
+// Parti bilgisini getir
+router.get('/get-party', auth, async (req, res) => {
   try {
     const userId = req.user.userId;
     
-    // Kullanıcının karakterini veritabanından al
+    // İlk olarak kullanıcının karakterini bul
     const [characters] = await pool.execute(
-      'SELECT * FROM game_characters WHERE user_id = ?',
+      'SELECT id FROM game_characters WHERE user_id = ?',
       [userId]
     );
     
     if (characters.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Karakter bulunamadı' 
-      });
+      return res.status(404).json({ success: false, message: 'Karakter bulunamadı' });
     }
     
-    // Döndürülecek karakter verisi
-    const characterData = prepareCharacterData(characters[0]);
+    const characterId = characters[0].id;
     
-    return res.status(200).json({
-      success: true,
-      character: characterData
-    });
+    // Önce özel parti tablosunda ara (eğer böyle bir tablo varsa)
+    try {
+      const [parties] = await pool.execute(
+        'SELECT * FROM game_parties WHERE character_id = ?',
+        [characterId]
+      );
+      
+      if (parties && parties.length > 0) {
+        // Parti bulundu, return et
+        const partyData = parties[0];
+        
+        // JSON alanlarını parse et
+        const ideology = partyData.ideology ? JSON.parse(partyData.ideology) : {};
+        
+        return res.status(200).json({
+          success: true,
+          party: {
+            id: partyData.id,
+            name: partyData.name,
+            shortName: partyData.short_name,
+            colorId: partyData.color_id,
+            ideology,
+            founderId: partyData.founder_id,
+            founderName: partyData.founder_name
+          }
+        });
+      }
+    } catch (error) {
+      // game_parties tablosu yoksa hata alırız, sessizce devam et
+      console.log("Parti tablosu bulunamadı veya sorgu hatası:", error.message);
+    }
     
+    // Parti bulunamadıysa, kayıtlı oyunlarda JSON olarak ara
+    try {
+      const [savedGames] = await pool.execute(
+        `SELECT game_data FROM game_saves 
+         WHERE character_id = ? AND is_active = TRUE 
+         ORDER BY updated_at DESC LIMIT 1`,
+        [characterId]
+      );
+      
+      if (savedGames && savedGames.length > 0 && savedGames[0].game_data) {
+        // Oyun verilerini parse et
+        const gameData = JSON.parse(savedGames[0].game_data);
+        
+        // Parti verilerini kontrol et
+        if (gameData.party) {
+          return res.status(200).json({
+            success: true,
+            party: gameData.party
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Kayıtlı oyundan parti verisi alma hatası:', error);
+    }
+    
+    // Parti bulunamadı
+    return res.status(404).json({ success: false, message: 'Parti bulunamadı' });
   } catch (error) {
-    console.error('Karakter getirme hatası:', error);
+    console.error('Parti bilgisi getirme hatası:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası' });
   }
 });
 
-// Karakter silme
-router.delete('/delete-character', auth, async (req, res) => {
+// Parti oluşturma endpoint'i (eğer yoksa ekleyin)
+router.post('/create-party', auth, async (req, res) => {
   try {
     const userId = req.user.userId;
+    const { party } = req.body;
     
-    // Karakteri sil
-    const [result] = await pool.execute(
-      'DELETE FROM game_characters WHERE user_id = ?',
+    if (!party || !party.name || !party.shortName || !party.colorId) {
+      return res.status(400).json({ success: false, message: 'Gerekli parti bilgileri eksik' });
+    }
+    
+    // İlk olarak kullanıcının karakterini bul
+    const [characters] = await pool.execute(
+      'SELECT id, full_name FROM game_characters WHERE user_id = ?',
       [userId]
     );
     
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Karakter bulunamadı'
-      });
+    if (characters.length === 0) {
+      return res.status(404).json({ success: false, message: 'Karakter bulunamadı. Önce bir karakter oluşturun.' });
     }
     
-    return res.status(200).json({
-      success: true,
-      message: 'Karakter başarıyla silindi'
-    });
+    const characterId = characters[0].id;
+    const characterName = characters[0].full_name;
     
+    try {
+      // 1. Önce game_parties tablosunun var olup olmadığını kontrol et
+      const [tables] = await pool.execute(
+        "SHOW TABLES LIKE 'game_parties'"
+      );
+      
+      if (tables.length > 0) {
+        // Tablo varsa, partinin zaten var olup olmadığını kontrol et
+        const [existingParty] = await pool.execute(
+          'SELECT id FROM game_parties WHERE character_id = ?',
+          [characterId]
+        );
+        
+        const ideologyJson = JSON.stringify(party.ideology || {});
+        
+        if (existingParty.length > 0) {
+          // Parti varsa güncelle
+          await pool.execute(
+            `UPDATE game_parties SET 
+             name = ?, 
+             short_name = ?, 
+             color_id = ?, 
+             ideology = ?,
+             founder_id = ?,
+             founder_name = ?,
+             updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [
+              party.name,
+              party.shortName,
+              party.colorId,
+              ideologyJson,
+              characterId,
+              party.founderName || characterName,
+              existingParty[0].id
+            ]
+          );
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Parti başarıyla güncellendi'
+          });
+        } else {
+          // Parti yoksa yeni kayıt oluştur
+          await pool.execute(
+            `INSERT INTO game_parties 
+             (user_id, character_id, name, short_name, color_id, ideology, founder_id, founder_name)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              userId,
+              characterId,
+              party.name,
+              party.shortName,
+              party.colorId,
+              ideologyJson,
+              characterId,
+              party.founderName || characterName
+            ]
+          );
+          
+          return res.status(201).json({
+            success: true,
+            message: 'Parti başarıyla oluşturuldu'
+          });
+        }
+      } else {
+        console.log("game_parties tablosu bulunamadı, oyun verisine kaydet");
+        
+        // 2. Eğer parti tablosu yoksa, verileri game_saves tablosuna ekleyelim
+        // Önce mevcut kayıtlı oyunu kontrol et
+        const [savedGames] = await pool.execute(
+          `SELECT id, game_data FROM game_saves 
+           WHERE user_id = ? AND character_id = ? AND is_active = TRUE
+           ORDER BY updated_at DESC LIMIT 1`,
+          [userId, characterId]
+        );
+        
+        if (savedGames.length > 0) {
+          // Mevcut kayıtlı oyunu güncelle
+          const gameData = JSON.parse(savedGames[0].game_data || '{}');
+          gameData.party = party;
+          gameData.hasParty = true;
+          
+          await pool.execute(
+            `UPDATE game_saves SET 
+             game_data = ?, 
+             updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [
+              JSON.stringify(gameData),
+              savedGames[0].id
+            ]
+          );
+        } else {
+          // Yeni bir oyun kaydı oluştur
+          const gameData = {
+            party: party,
+            hasParty: true,
+            score: 0,
+            level: 1,
+            createdAt: new Date().toISOString()
+          };
+          
+          await pool.execute(
+            `INSERT INTO game_saves 
+             (user_id, character_id, save_name, save_slot, game_data, game_date, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
+            [
+              userId,
+              characterId,
+              `${characterName}'in Partisi`,
+              1, // Varsayılan slot
+              JSON.stringify(gameData),
+              new Date().toISOString()
+            ]
+          );
+        }
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Parti başarıyla oluşturuldu'
+        });
+      }
+    } catch (dbError) {
+      console.error('Veritabanı işlemi hatası:', dbError);
+      
+      // Tablo yok hatası veya başka bir SQL hatası oluştu, 
+      // parti verisini game_saves tablosunda JSON olarak sakla
+      try {
+        console.log("Alternatif yöntem deneniyor: Parti verisini game_data içinde sakla");
+        
+        // Mevcut kayıtlı oyunu kontrol et
+        const [savedGames] = await pool.execute(
+          `SELECT id, game_data FROM game_saves 
+           WHERE user_id = ? AND character_id = ? AND is_active = TRUE
+           ORDER BY updated_at DESC LIMIT 1`,
+          [userId, characterId]
+        );
+        
+        const gameData = savedGames.length > 0 && savedGames[0].game_data 
+          ? JSON.parse(savedGames[0].game_data) 
+          : { score: 0, level: 1 };
+        
+        gameData.party = party;
+        gameData.hasParty = true;
+        
+        if (savedGames.length > 0) {
+          // Mevcut kaydı güncelle
+          await pool.execute(
+            `UPDATE game_saves SET 
+             game_data = ?, 
+             updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [
+              JSON.stringify(gameData),
+              savedGames[0].id
+            ]
+          );
+        } else {
+          // Yeni kayıt oluştur
+          await pool.execute(
+            `INSERT INTO game_saves 
+             (user_id, character_id, save_name, save_slot, game_data, game_date, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
+            [
+              userId,
+              characterId,
+              `${characterName || 'Oyuncu'}'nun Partisi`,
+              1, // Varsayılan slot
+              JSON.stringify(gameData),
+              new Date().toISOString()
+            ]
+          );
+        }
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Parti başarıyla oluşturuldu'
+        });
+      } catch (error) {
+        console.error('Alternatif yöntem hatası:', error);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Parti kaydedilirken hata oluştu: ' + error.message
+        });
+      }
+    }
   } catch (error) {
-    console.error('Karakter silme hatası:', error);
+    console.error('Parti oluşturma hatası:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası' });
   }
 });
 
-// OYUN KAYIT İŞLEMLERİ
-// ------------------
-
-// Oyun kaydet
+// Oyun kaydetme fonksiyonunun güncellenmesi (zaten mevcutsa güncelleme yapın)
+// Bu kod parçasını mevcut save-game route'unuza entegre edin
 router.post('/save-game', auth, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { character, gameData, saveName, saveSlot = 1 } = req.body;
+    const { gameData, saveName, saveSlot = 1 } = req.body;
     
     if (!gameData) {
       return res.status(400).json({ success: false, message: 'Oyun verisi eksik' });
@@ -195,26 +321,29 @@ router.post('/save-game', auth, async (req, res) => {
     }
     
     const characterId = characters[0].id;
-    const gameDataJson = JSON.stringify(gameData);
     
-    // Belirtilen slot için mevcut kayıt var mı kontrol et
+    // Parti bilgisini de gameData içinde sakla
+    const completeGameData = gameData;
+    
+    // Mevcut kayıt var mı kontrol et
     const [existingSaves] = await pool.execute(
       'SELECT * FROM game_saves WHERE user_id = ? AND save_slot = ?',
       [userId, saveSlot]
     );
     
+    const gameDataJson = JSON.stringify(completeGameData);
+    
     if (existingSaves.length > 0) {
       // Mevcut kaydı güncelle
       await pool.execute(
         `UPDATE game_saves SET 
-         save_name = ?, game_data = ?, game_date = ?, game_version = ?, 
+         save_name = ?, game_data = ?, game_date = ?, 
          updated_at = CURRENT_TIMESTAMP
          WHERE user_id = ? AND save_slot = ?`,
         [
           saveName || `Kayıt ${saveSlot}`,
           gameDataJson,
-          gameData.gameDate || new Date().toISOString(),
-          gameData.gameVersion || '1.0.0',
+          gameData.saveDate || new Date().toISOString(),
           userId,
           saveSlot
         ]
@@ -225,21 +354,21 @@ router.post('/save-game', auth, async (req, res) => {
         message: 'Oyun başarıyla güncellendi',
         saveId: existingSaves[0].id
       });
-      
     } else {
       // Yeni kayıt oluştur
       const [result] = await pool.execute(
         `INSERT INTO game_saves 
-         (user_id, character_id, save_name, save_slot, game_data, game_date, game_version) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (user_id, character_id, save_name, save_slot, game_data, game_date, game_version, is_active) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
         [
           userId,
           characterId,
           saveName || `Kayıt ${saveSlot}`,
           saveSlot,
           gameDataJson,
-          gameData.gameDate || new Date().toISOString(),
-          gameData.gameVersion || '1.0.0'
+          gameData.saveDate || new Date().toISOString(),
+          gameData.gameVersion || '1.0.0',
+          1 // is_active
         ]
       );
       
@@ -249,156 +378,8 @@ router.post('/save-game', auth, async (req, res) => {
         saveId: result.insertId
       });
     }
-    
   } catch (error) {
     console.error('Oyun kaydetme hatası:', error);
     res.status(500).json({ success: false, message: 'Sunucu hatası' });
   }
 });
-
-// Kayıtlı oyunları getir
-router.get('/saved-games', auth, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    
-    // Kullanıcının kayıtlı oyunlarını getir
-    const [savedGames] = await pool.execute(
-      `SELECT gs.*, gc.full_name as character_name 
-       FROM game_saves gs
-       JOIN game_characters gc ON gs.character_id = gc.id
-       WHERE gs.user_id = ? AND gs.is_active = TRUE
-       ORDER BY gs.updated_at DESC`,
-      [userId]
-    );
-    
-    // Oyun verilerini döndür
-    return res.status(200).json({
-      success: true,
-      savedGames: savedGames.map(game => ({
-        id: game.id,
-        saveName: game.save_name,
-        saveSlot: game.save_slot,
-        characterName: game.character_name,
-        gameDate: game.game_date,
-        gameVersion: game.game_version,
-        createdAt: game.created_at,
-        updatedAt: game.updated_at
-      }))
-    });
-    
-  } catch (error) {
-    console.error('Kayıtlı oyunları getirme hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
-  }
-});
-
-// Kayıtlı oyunu yükle
-router.get('/load-game/:saveId', auth, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const saveId = req.params.saveId;
-    
-    // Kayıtlı oyunu getir
-    const [savedGames] = await pool.execute(
-      `SELECT gs.*, gc.* 
-       FROM game_saves gs
-       JOIN game_characters gc ON gs.character_id = gc.id
-       WHERE gs.id = ? AND gs.user_id = ? AND gs.is_active = TRUE`,
-      [saveId, userId]
-    );
-    
-    if (savedGames.length === 0) {
-      return res.status(404).json({ success: false, message: 'Kayıtlı oyun bulunamadı' });
-    }
-    
-    const savedGame = savedGames[0];
-    
-    // Karakter verisini hazırla
-    const character = prepareCharacterData(savedGame);
-    
-    // Oyun verisini hazırla
-    const gameData = JSON.parse(savedGame.game_data);
-    
-    return res.status(200).json({
-      success: true,
-      saveData: {
-        saveId: savedGame.id,
-        saveName: savedGame.save_name,
-        saveSlot: savedGame.save_slot,
-        character,
-        gameData,
-        gameDate: savedGame.game_date,
-        gameVersion: savedGame.game_version,
-        createdAt: savedGame.created_at,
-        updatedAt: savedGame.updated_at
-      }
-    });
-    
-  } catch (error) {
-    console.error('Oyun yükleme hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
-  }
-});
-
-// Kayıtlı oyunu sil
-router.delete('/delete-save/:saveId', auth, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const saveId = req.params.saveId;
-    
-    // Kayıtlı oyunu sil (soft delete)
-    const [result] = await pool.execute(
-      'UPDATE game_saves SET is_active = FALSE WHERE id = ? AND user_id = ?',
-      [saveId, userId]
-    );
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Kayıtlı oyun bulunamadı' });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      message: 'Kayıtlı oyun başarıyla silindi'
-    });
-    
-  } catch (error) {
-    console.error('Kayıtlı oyun silme hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
-  }
-});
-
-// Veritabanından gelen karakter verisini istemci için hazırla
-function prepareCharacterData(dbCharacter) {
-  if (!dbCharacter) return null;
-  
-  try {
-    // Veritabanından gelen JSON string'leri parse et
-    const ideology = dbCharacter.ideology ? JSON.parse(dbCharacter.ideology) : {};
-    const stats = dbCharacter.stats ? JSON.parse(dbCharacter.stats) : {};
-    const dynamicValues = dbCharacter.dynamic_values ? JSON.parse(dbCharacter.dynamic_values) : {};
-    const expertise = dbCharacter.expertise ? JSON.parse(dbCharacter.expertise) : [];
-    
-    // İstemci tarafı için karakter nesnesini oluştur
-    return {
-      id: dbCharacter.id,
-      userId: dbCharacter.user_id,
-      gameName: dbCharacter.game_name,
-      fullName: dbCharacter.full_name,
-      age: dbCharacter.age,
-      gender: dbCharacter.gender,
-      birthPlace: dbCharacter.birth_place,
-      profession: dbCharacter.profession,
-      ideology,
-      stats,
-      dynamicValues,
-      expertise,
-      createdAt: dbCharacter.created_at,
-      updatedAt: dbCharacter.updated_at
-    };
-  } catch (error) {
-    console.error('Karakter verisi hazırlama hatası:', error);
-    return null;
-  }
-}
-
-module.exports = router;

@@ -1,27 +1,228 @@
 {
-  "economic": {
-    "name": "Ekonomik",
-    "positions": ["Devletçi", "Karma Ekonomi", "Merkez", "Liberal Ekonomi", "Serbest Piyasa"],
-    "weight": 1.2
-  },
-  "cultural": {
-    "name": "Kültürel",
-    "positions": ["İlerici/Batıcı", "Laik/Seküler", "Merkez", "Muhafazakar", "Dini Muhafazakar"],
-    "weight": 1.2
-  },
-  "diplomatic": {
-    "name": "Diplomatik",
-    "positions": ["Batı Yanlısı", "Denge Politikası", "Bağımsız Dış Politika", "Bölgesel Liderlik", "Yeni-Osmanlıcılık"],
-    "weight": 0.8
-  },
-  "social": {
-    "name": "Toplumsal",
-    "positions": ["Çoğulcu", "Cumhuriyetçi", "Merkez", "Türk Milliyetçisi", "Muhafazakar Milliyetçi"],
-    "weight": 1.0
-  },
-  "government": {
-    "name": "Hükümet",
-    "positions": ["Parlamenter", "Güçlendirilmiş Parlamentarizm", "Yarı Başkanlık", "Başkanlık", "Merkezi Otorite"],
-    "weight": 0.8
+  "ideologyAxes": {
+    "economic": {
+      "name": "Ekonomik",
+      "description": "Ekonomik düzen ve devletin ekonomideki rolüne ilişkin görüşler",
+      "levels": [
+        {
+          "value": 1,
+          "name": "Devletçi",
+          "description": "Güçlü kamu işletmeleri, ekonomide büyük devlet kontrolü, özelleştirme karşıtlığı"
+        },
+        {
+          "value": 2,
+          "name": "Sosyal Demokrat",
+          "description": "Güçlü sosyal politikalar, düzenlenmiş piyasa, kamu hizmetlerinin önceliği"
+        },
+        {
+          "value": 3,
+          "name": "Merkez/Karma",
+          "description": "Stratejik sektörlerde devlet varlığı, diğer alanlarda piyasa rekabeti"
+        },
+        {
+          "value": 4,
+          "name": "Liberal",
+          "description": "Serbest piyasa, düşük vergiler, devlet müdahalesinin azaltılması"
+        },
+        {
+          "value": 5,
+          "name": "Piyasacı",
+          "description": "Minimal devlet müdahalesi, kapsamlı özelleştirmeler, serbest ticaret"
+        }
+      ],
+      "weight": 1.2
+    },
+    "governance": {
+      "name": "Yönetim",
+      "description": "Merkezi yönetim ve yerel yönetimler arasındaki yetki dağılımına ilişkin görüşler",
+      "levels": [
+        {
+          "value": 1,
+          "name": "Adem-i Merkezi",
+          "description": "Güçlü yerel yönetimler, federal yapıya yakın, yerinden yönetim"
+        },
+        {
+          "value": 2,
+          "name": "Güçlendirilmiş Yerel",
+          "description": "Merkezi hükümetin gücünün bir kısmının yerel yönetimlere devri"
+        },
+        {
+          "value": 3,
+          "name": "Denge",
+          "description": "Merkezi ve yerel arasında dengeli yetki dağılımı"
+        },
+        {
+          "value": 4,
+          "name": "Merkezi Eğilimli",
+          "description": "Güçlü merkezi karar mekanizmaları, sınırlı yerel yetki"
+        },
+        {
+          "value": 5,
+          "name": "Tam Merkezi",
+          "description": "Katı merkezi yönetim, yerel yönetimlerin minimal özerkliği"
+        }
+      ],
+      "weight": 1.0
+    },
+    "cultural": {
+      "name": "Geleneksel-Modernist",
+      "description": "Toplumsal değerlere, geleneklere ve modernleşmeye ilişkin görüşler",
+      "levels": [
+        {
+          "value": 1,
+          "name": "İlerici",
+          "description": "Batı tipi modernleşme, geleneksel normlardan kopuş, sosyal liberalizm"
+        },
+        {
+          "value": 2,
+          "name": "Modern",
+          "description": "Çağdaş değerlerle yerel kimliğin uyumlu birlikteliği"
+        },
+        {
+          "value": 3,
+          "name": "Denge",
+          "description": "Geleneksel ve modern değerlerin pragmatik sentezi"
+        },
+        {
+          "value": 4,
+          "name": "Muhafazakar",
+          "description": "Geleneksel değerler ve kurumların korunması"
+        },
+        {
+          "value": 5,
+          "name": "Gelenekselci",
+          "description": "Kadim değerlere dönüş, moderniteye şüpheyle yaklaşım"
+        }
+      ],
+      "weight": 1.1
+    },
+    "identity": {
+      "name": "Kimlik",
+      "description": "Etnik, dini ve kültürel kimliklere yaklaşım",
+      "levels": [
+        {
+          "value": 1,
+          "name": "Çoğulcu",
+          "description": "Farklı etnik ve dini kimliklerin eşit tanınması ve korunması"
+        },
+        {
+          "value": 2,
+          "name": "Kapsayıcı",
+          "description": "Çeşitliliğe açık ancak ortak bir vatandaşlık çerçevesi sunan"
+        },
+        {
+          "value": 3,
+          "name": "Vatandaşlık Odaklı",
+          "description": "Etnik ve dini kimliklerden bağımsız vatandaşlık tanımı"
+        },
+        {
+          "value": 4,
+          "name": "Milli",
+          "description": "Türk kimliğinin öne çıkarılması, diğer kimliklere saygı içeren"
+        },
+        {
+          "value": 5,
+          "name": "Milliyetçi",
+          "description": "Türk kimliğinin merkezi konumu, kültürel bütünlük vurgusu"
+        }
+      ],
+      "weight": 1.3
+    },
+    "religion": {
+      "name": "İnanç-Devlet İlişkisi",
+      "description": "Din ve devlet arasındaki ilişkiye dair görüşler",
+      "levels": [
+        {
+          "value": 1,
+          "name": "Laik İlkeci",
+          "description": "Din ve devlet işlerinin kesin ayrımı, dinin kişisel vicdan alanında özgür olması"
+        },
+        {
+          "value": 2,
+          "name": "Liberal Laik",
+          "description": "Dini özgürlüklere güçlü saygı, devlet işlerinde dini etkinin sınırlandırılması"
+        },
+        {
+          "value": 3,
+          "name": "Ilımlı Laiklik",
+          "description": "Din ve devlet arasında yumuşak ayrım, dini kimliklerin kamusal görünürlüğüne açıklık"
+        },
+        {
+          "value": 4,
+          "name": "Din Dostu",
+          "description": "Dini değerlerin kamu politikalarında dikkate alınması, dini kurumlarla işbirliği"
+        },
+        {
+          "value": 5,
+          "name": "Dinsel",
+          "description": "Dini referansların yasalarda ve kamusal alanda belirgin varlığı"
+        }
+      ],
+      "weight": 1.2
+    },
+    "foreign": {
+      "name": "Dış Politika",
+      "description": "Uluslararası ilişkiler ve dış politika yaklaşımı",
+      "levels": [
+        {
+          "value": 1,
+          "name": "Batı Bloku",
+          "description": "AB ve NATO ile tam entegrasyon, Batı kurumlarına bağlılık"
+        },
+        {
+          "value": 2,
+          "name": "Batı Yanlısı",
+          "description": "Batı ile güçlü ilişkiler, stratejik ortaklık"
+        },
+        {
+          "value": 3,
+          "name": "Dengeli",
+          "description": "Çok vektörlü dış politika, pragmatik yaklaşım"
+        },
+        {
+          "value": 4,
+          "name": "Bağımsız",
+          "description": "Milli çıkarlara dayalı özerk dış politika, blok dışı eğilim"
+        },
+        {
+          "value": 5,
+          "name": "Doğu/Güney Yönelimli",
+          "description": "Avrasya ve Ortadoğu ile derinleştirilmiş ilişkiler"
+        }
+      ],
+      "weight": 0.9
+    },
+    "change": {
+      "name": "Toplumsal Değişim",
+      "description": "Toplumsal ve siyasal düzenin değişimine yaklaşım",
+      "levels": [
+        {
+          "value": 1,
+          "name": "Devrimci",
+          "description": "Radikal toplumsal değişim, mevcut düzenin temelden dönüşümü"
+        },
+        {
+          "value": 2,
+          "name": "Reformcu",
+          "description": "Kapsamlı ancak kademeli değişim, mevcut yapıların dönüşümü"
+        },
+        {
+          "value": 3,
+          "name": "Kademeli İyileştirme",
+          "description": "Var olan sistemin tedrici geliştirilmesi"
+        },
+        {
+          "value": 4,
+          "name": "Statükocu",
+          "description": "Mevcut toplumsal ve kurumsal düzenin korunması"
+        },
+        {
+          "value": 5,
+          "name": "Gelenekçi",
+          "description": "Geçmişteki düzen veya değerlere dönüş eğilimi"
+        }
+      ],
+      "weight": 0.8
+    }
   }
 }

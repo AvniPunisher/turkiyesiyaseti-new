@@ -91,6 +91,17 @@ export const apiRequest = async (method, endpoint, data = null, extraHeaders = {
       };
     }
     
+    // Endpoint bulunamadı
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        status: 404,
+        message: 'İstek yapılan endpoint bulunamadı.',
+        error,
+        notFoundError: true
+      };
+    }
+    
     // Ağ hatası
     if (error.code === 'ERR_NETWORK') {
       return {
@@ -113,10 +124,13 @@ export const apiRequest = async (method, endpoint, data = null, extraHeaders = {
   }
 };
 
-export default {
+// Basitleştirilmiş API işlemleri
+const api = {
   get: (endpoint, extraHeaders = {}) => apiRequest('get', endpoint, null, extraHeaders),
   post: (endpoint, data, extraHeaders = {}) => apiRequest('post', endpoint, data, extraHeaders),
   put: (endpoint, data, extraHeaders = {}) => apiRequest('put', endpoint, data, extraHeaders),
   delete: (endpoint, extraHeaders = {}) => apiRequest('delete', endpoint, null, extraHeaders),
   testConnection: testApiConnection
 };
+
+export default api;

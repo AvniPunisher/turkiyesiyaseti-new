@@ -153,3 +153,19 @@ CREATE TABLE IF NOT EXISTS user_achievements (
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE SET NULL,
   UNIQUE KEY unique_user_achievement (user_id, achievement_id)
 );
+
+CREATE TABLE IF NOT EXISTS game_parties (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  character_id INT NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  short_name VARCHAR(10) NOT NULL,
+  color_id VARCHAR(30) NOT NULL,
+  ideology JSON,
+  founder_id INT,
+  founder_name VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE CASCADE
+);

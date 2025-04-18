@@ -1,6 +1,6 @@
 // src/components/PartyCreator/PartyCreator.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './PartyCreator.css';
 
 // API yardımcı servisi
@@ -29,7 +29,6 @@ const getContrastColor = (hexColor) => {
 
 const PartyCreator = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [party, setParty] = useState({
@@ -61,19 +60,7 @@ const PartyCreator = () => {
           return;
         }
 
-        // Karakter verisini location state'inden kontrol et
-        if (location.state?.character) {
-          const character = location.state.character;
-          setParty(prev => ({
-            ...prev,
-            founderId: character.id || 1,
-            founderName: character.fullName || 'Karakter Adı',
-            ideology: { ...character.ideology } // Karakter ideolojisini başlangıç değeri olarak al
-          }));
-          return;
-        }
-
-        // API'den karakter bilgisini çek
+        // Buraya bir try/catch ekleyelim ve geçici bir çözüm olarak ilerleyelim
         try {
           const response = await apiHelper.get('/api/game/get-character');
           
@@ -129,7 +116,7 @@ const PartyCreator = () => {
     };
 
     fetchCharacter();
-  }, [navigate, location]);
+  }, [navigate]);
 
   // İdeolojik etiketler
   const getIdeologicalLabel = (position) => {
@@ -240,76 +227,33 @@ const PartyCreator = () => {
         return;
       }
       
-      // Parti verisini localStorage'a kaydet
-      // Böylece API hatası olsa bile Dashboard'da kullanabiliriz
-      try {
-        localStorage.setItem('partyData', JSON.stringify(party));
-        console.log("Parti verileri localStorage'a kaydedildi");
-      } catch (e) {
-        console.error("Parti verileri localStorage'a kaydedilemedi:", e);
-      }
-      
       // Parti verisini API'ye gönder
-      try {
-        const response = await apiHelper.post('/api/game/create-party', { party });
-        
-        if (response.success) {
-          console.log('Parti başarıyla oluşturuldu!');
-          // Oyun ekranına yönlendir
-          navigate('/game-dashboard', { 
-            state: { 
-              party,
-              message: 'Parti başarıyla oluşturuldu!'
-            } 
-          });
-        } else {
-          // API yanıt hatası
-          console.error("API başarısız oldu, ancak localStorage'a kaydettiğimiz için devam ediyoruz:", response.message);
-          // Oyun ekranına yönlendir
-          navigate('/game-dashboard', { 
-            state: { 
-              party,
-              message: 'Parti başarıyla oluşturuldu (yerel olarak kaydedildi)!'
-            } 
-          });
-        }
-      } catch (error) {
-        // API hatası olsa bile devam et
-        console.error("API hatası, ancak localStorage'a kaydettik:", error);
+      const response = await apiHelper.post('/api/party/create-party', { party });
+      
+      if (response.success) {
+        alert('Parti başarıyla oluşturuldu!');
         // Oyun ekranına yönlendir
-        navigate('/game-dashboard', { 
-          state: { 
-            party,
-            message: 'Sunucu bağlantısında sorun var, ancak yerel olarak kaydedildi.'
-          } 
-        });
+        navigate('/single-player');
+      } else {
+        // API yanıt hatası
+        if (response.authError) {
+          alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
+          navigate('/login', { state: { returnUrl: '/party-creator' } });
+        } else if (response.networkError) {
+          alert("Sunucuya bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin.");
+        } else if (response.notFoundError) {
+          alert(`API endpoint bulunamadı (404 hatası).\n\nÖNERİLEN ÇÖZÜMLER:\n1. Backend sunucunuzun çalıştığından emin olun\n2. API URL'sinin doğru olduğunu kontrol edin\n3. Backend geliştiricileriyle iletişime geçip "/api/party/create-party" endpoint'inin mevcut olduğundan emin olun`);
+        } else if (response.status === 500) {
+          console.error("Sunucu hatası detayları:", response.data);
+          alert("Sunucu hatası: API'de bir problem oluştu. Lütfen daha sonra tekrar deneyin.");
+        } else {
+          alert(`Parti oluşturulurken bir hata oluştu: ${response.message}`);
+        }
+        console.error("API yanıt hatası:", response.error);
       }
     } catch (error) {
-      console.error("Parti oluşturma hatası:", error);
-      
-      // API bağlantı hatası
-      if (error.code === 'ERR_NETWORK') {
-        alert("Sunucuya bağlantı kurulamadı, ancak yerel olarak kaydedildi. Oyuna devam ediyoruz.");
-        navigate('/game-dashboard', { state: { party } });
-      } 
-      // Token hatası
-      else if (error.response && error.response.status === 401) {
-        alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
-        localStorage.removeItem('token');
-        navigate('/login', { state: { returnUrl: '/party-creator' } });
-      }
-      // Sunucu hatası (500)
-      else if (error.response && error.response.status === 500) {
-        console.error("Sunucu hatası detayları:", error.response.data);
-        alert("Sunucu hatası, ancak yerel olarak kaydedildi. Oyuna devam ediyoruz.");
-        navigate('/game-dashboard', { state: { party } });
-      }
-      // Diğer hatalar
-      else {
-        console.error("Hata detayları:", error.response?.data || error);
-        alert("Beklenmeyen bir hata oluştu, ancak yerel olarak kaydedildi. Oyuna devam ediyoruz.");
-        navigate('/game-dashboard', { state: { party } });
-      }
+      console.error("Beklenmeyen hata:", error);
+      alert(`Beklenmeyen bir hata oluştu: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -442,7 +386,7 @@ const PartyCreator = () => {
             </div>
           )}
           
-          {/* Tab 2: İdeoloji ve Önizleme */}
+          {/* Tab 2: İdeoloji ve Önizleme - CharacterCreator'daki gibi güncellendi */}
           {currentTab === 1 && (
             <div>
               <h3 className="section-title">Parti İdeolojisi</h3>
@@ -485,7 +429,7 @@ const PartyCreator = () => {
                 </div>
               </div>
               
-              {/* İdeoloji Eksenleri */}
+              {/* İdeoloji Eksenleri - CharacterCreator'daki gibi */}
               <div>
                 {Object.entries(ideologyAxes).map(([axis, data]) => (
                   <div key={axis} className="ideology-axis">
@@ -528,7 +472,7 @@ const PartyCreator = () => {
                   <h3 className="party-full-name">{party.name}</h3>
                 </div>
                 
-                <div>
+                <div className="party-ideology-tags">
                   {getIdeologyTags().map((tag, index) => (
                     <span key={index} className="party-ideology-tag">
                       {tag.axis}: {tag.position}

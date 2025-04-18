@@ -8,11 +8,14 @@ import './CharacterCreator.css';
 import apiHelper from '../../services/apiHelper';
 
 // JSON verileri
-import ideologyAxes from '../../data/ideologies.json';
+import ideologyData from '../../data/ideologies.json';
 import cities from '../../data/cities.json';
 import professions from '../../data/professions.json';
 
 const CharacterCreator = () => {
+  // ideologyAxes nesnesini al
+  const ideologyAxes = ideologyData.ideologyAxes || {};
+  
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -137,9 +140,10 @@ const CharacterCreator = () => {
     let totalWeight = 0;
     let weightedSum = 0;
     
+    // İdeoloji değerlerini al ve yeni yapıya uygun şekilde hesapla
     for (const axis in ideologyAxes) {
-      if (values[axis] !== undefined) {
-        weightedSum += values[axis] * ideologyAxes[axis].weight;
+      if (values[getAxisMapping(axis)] !== undefined) {
+        weightedSum += values[getAxisMapping(axis)] * ideologyAxes[axis].weight;
         totalWeight += ideologyAxes[axis].weight;
       }
     }
@@ -149,9 +153,41 @@ const CharacterCreator = () => {
 
   // İdeoloji değerini pozisyon adına çeviren yardımcı fonksiyon
   const getPositionName = (axis, value) => {
-    const positions = ideologyAxes[axis].positions;
-    const index = Math.floor(value / (100 / (positions.length - 1)));
-    return positions[Math.min(index, positions.length - 1)];
+    // Yeni ideoloji yapısında axis değerini eşleştir
+    const mappedAxis = getAxisMapping(axis, true);
+    
+    if (!ideologyAxes[mappedAxis]) return "";
+    
+    // Yeni yapıda positions yerine levels kullanıldığını dikkate al
+    const levels = ideologyAxes[mappedAxis].levels;
+    
+    // Slider değerini (0-100) levels dizisi indeksine dönüştür
+    const index = Math.floor(value / (100 / (levels.length - 1)));
+    
+    // Yeni yapıda her seviyenin adını doğrudan al
+    return levels[Math.min(index, levels.length - 1)]?.name || "";
+  };
+
+  // Eksen isimlerini eşleştiren yardımcı fonksiyon
+  const getAxisMapping = (axis, reverse = false) => {
+    // Eski->Yeni ve Yeni->Eski eşleştirme tablosu
+    const mapping = {
+      economic: "economic",
+      cultural: "cultural",
+      diplomatic: "foreign",    // diplomatic -> foreign
+      social: "identity",       // social -> identity 
+      government: "governance"  // government -> governance
+    };
+    
+    if (reverse) {
+      // Tersine eşleştirme
+      for (const key in mapping) {
+        if (mapping[key] === axis) return key;
+      }
+      return axis;
+    }
+    
+    return mapping[axis] || axis;
   };
 
   // İdeoloji değerini güncelleyen fonksiyon
@@ -460,28 +496,32 @@ const CharacterCreator = () => {
               
               {/* İdeoloji Eksenleri */}
               <div>
-                {Object.entries(ideologyAxes).map(([axis, data]) => (
-                  <div key={axis} className="ideology-axis">
-                    <div className="ideology-header">
-                      <label>{data.name} Ekseni</label>
-                      <span className="ideology-position">{getPositionName(axis, character.ideology[axis])}</span>
+                {/* Sadece kullandığımız eksenleri göster */}
+                {Object.keys(character.ideology)
+                  .filter(axis => axis !== 'overallPosition')
+                  .map(axis => (
+                    <div key={axis} className="ideology-axis">
+                      <div className="ideology-header">
+                        <label>{ideologyAxes[getAxisMapping(axis)]?.name || axis.charAt(0).toUpperCase() + axis.slice(1)} Ekseni</label>
+                        <span className="ideology-position">{getPositionName(axis, character.ideology[axis])}</span>
+                      </div>
+                      <div className="ideology-labels">
+                        {/* Her eksen için pozisyon adlarını göster */}
+                        {ideologyAxes[getAxisMapping(axis)]?.levels.map(level => (
+                          <span key={level.value}>{level.name}</span>
+                        ))}
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        step="25"
+                        className="ideology-slider" 
+                        value={character.ideology[axis]}
+                        onChange={(e) => handleIdeologyChange(axis, parseInt(e.target.value))}
+                      />
                     </div>
-                    <div className="ideology-labels">
-                      {data.positions.map((position, idx) => (
-                        <span key={idx}>{position}</span>
-                      ))}
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      step="25"
-                      className="ideology-slider" 
-                      value={character.ideology[axis]}
-                      onChange={(e) => handleIdeologyChange(axis, parseInt(e.target.value))}
-                    />
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           )}

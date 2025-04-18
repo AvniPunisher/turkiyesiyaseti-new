@@ -235,7 +235,7 @@ const SinglePlayer = () => {
     
     // Kullanıcı giriş yapmış, karakteri var mı kontrol et
     checkExistingCharacter(token);
-  }, [location.state, navigate]);
+  }, [location, navigate]);
   
   // Mevcut kaydedilmiş karakteri kontrol et
   const checkExistingCharacter = async (token) => {

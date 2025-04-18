@@ -1,4 +1,9 @@
--- MySQL veritabanı şeması - railway veritabanı için
+-- Railway veritabanı için tablo yapıları
+USE railway;
+
+-- ----------------------
+-- TEMEL TABLOLAR
+-- ----------------------
 
 -- Kullanıcılar tablosu
 CREATE TABLE IF NOT EXISTS users (
@@ -10,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Karakter veritabanı tablosu
+-- Karakter tablosu
 CREATE TABLE IF NOT EXISTS game_characters (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -29,7 +34,7 @@ CREATE TABLE IF NOT EXISTS game_characters (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Parti tablosu (YENİ)
+-- Parti tablosu
 CREATE TABLE IF NOT EXISTS game_parties (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -47,7 +52,7 @@ CREATE TABLE IF NOT EXISTS game_parties (
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE CASCADE
 );
 
--- Kayıtlı oyun verileri tablosu (genişletilmiş)
+-- Kayıtlı oyun verileri tablosu
 CREATE TABLE IF NOT EXISTS game_saves (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -67,7 +72,11 @@ CREATE TABLE IF NOT EXISTS game_saves (
   FOREIGN KEY (party_id) REFERENCES game_parties(id) ON DELETE SET NULL
 );
 
--- Oyun olayları ve ilerleme verileri tablosu
+-- ----------------------
+-- OYUN MEKANİKLERİ TABLOLARI
+-- ----------------------
+
+-- Oyun ilerleme tablosu
 CREATE TABLE IF NOT EXISTS game_progress (
   id INT AUTO_INCREMENT PRIMARY KEY,
   character_id INT NOT NULL,
@@ -83,7 +92,7 @@ CREATE TABLE IF NOT EXISTS game_progress (
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE CASCADE
 );
 
--- Oyun güncellemeleri ve notlar
+-- Oyun güncellemeleri tablosu
 CREATE TABLE IF NOT EXISTS game_updates (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -96,6 +105,10 @@ CREATE TABLE IF NOT EXISTS game_updates (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE SET NULL
 );
+
+-- ----------------------
+-- BAŞARIM VE İSTATİSTİK TABLOLARI
+-- ----------------------
 
 -- Oyuncu istatistikleri tablosu
 CREATE TABLE IF NOT EXISTS player_stats (
@@ -132,6 +145,10 @@ CREATE TABLE IF NOT EXISTS user_achievements (
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE SET NULL,
   UNIQUE KEY unique_user_achievement (user_id, achievement_id)
 );
+
+-- ----------------------
+-- ÇOK OYUNCULU TABLOLARI
+-- ----------------------
 
 -- Çok oyunculu oyun oturumları tablosu
 CREATE TABLE IF NOT EXISTS game_sessions (

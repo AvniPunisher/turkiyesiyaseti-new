@@ -138,18 +138,19 @@ const PartyCreator = () => {
 
   // Genel ideolojik pozisyon hesaplayıcı
   const calculateOverallPosition = (values) => {
-    let totalWeight = 0;
-    let weightedSum = 0;
-    
-    for (const axis in ideologyAxes) {
-      if (values[axis] !== undefined) {
-        weightedSum += values[axis] * ideologyAxes[axis].weight;
-        totalWeight += ideologyAxes[axis].weight;
-      }
+  // Karakter oluşturma ekranındaki ile aynı hesaplama mantığını kullan
+  let totalWeight = 0;
+  let weightedSum = 0;
+  
+  for (const axis in ideologyAxes) {
+    if (values[axis] !== undefined) {
+      weightedSum += values[axis] * ideologyAxes[axis].weight;
+      totalWeight += ideologyAxes[axis].weight;
     }
-    
-    return totalWeight > 0 ? weightedSum / totalWeight : 50;
-  };
+  }
+  
+  return totalWeight > 0 ? weightedSum / totalWeight : 50;
+};
 
   // İdeoloji değerini güncelleyen fonksiyon
   const handleIdeologyChange = (axis, value) => {

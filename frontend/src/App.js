@@ -1,4 +1,4 @@
-// src/App.js
+// frontend/src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainMenu from './components/MainMenu';
@@ -9,8 +9,8 @@ import MultiPlayer from './components/MultiPlayer';
 import LoadGame from './components/LoadGame';
 import CharacterCreator from './components/CharacterCreator/CharacterCreator';
 import PartyCreator from './components/PartyCreator/PartyCreator';
-import GameDashboard from './components/GameDashboard/GameDashboard';
 import GlobalStyle from './GlobalStyle';
+import './App.css';
 
 function App() {
   return (
@@ -25,7 +25,6 @@ function App() {
         <Route path="/load-game" element={<LoadGame />} />
         <Route path="/character-creator" element={<CharacterCreator />} />
         <Route path="/party-creator" element={<PartyCreator />} />
-        <Route path="/game-dashboard" element={<GameDashboard />} />
       </Routes>
     </Router>
   );

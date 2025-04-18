@@ -27,10 +27,12 @@ const CharacterCreator = () => {
     // İdeoloji değerleri (0-100 arası)
     ideology: {
       economic: 50,
+      governance: 50,
       cultural: 50,
-      diplomatic: 50,
-      social: 50,
-      government: 50,
+      identity: 50,
+      religion: 50,
+      foreign: 50,
+      change: 50,
       overallPosition: 50
     },
     

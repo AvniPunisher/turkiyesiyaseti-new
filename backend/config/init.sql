@@ -1,9 +1,9 @@
--- MySQL veritabanı şeması
+-- Railway veritabanı için tablo yapıları
+USE railway;
 
--- Veritabanını oluştur
-CREATE DATABASE IF NOT EXISTS game_db;
-
-USE game_db;
+-- ----------------------
+-- TEMEL TABLOLAR
+-- ----------------------
 
 -- Kullanıcılar tablosu
 CREATE TABLE IF NOT EXISTS users (
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Karakter veritabanı tablosu
+-- Karakter tablosu
 CREATE TABLE IF NOT EXISTS game_characters (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -34,61 +34,49 @@ CREATE TABLE IF NOT EXISTS game_characters (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Kayıtlı oyunlar tablosu
-CREATE TABLE IF NOT EXISTS saved_games (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  game_name VARCHAR(100) NOT NULL,
-  game_data JSON NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Kayıtlı oyun verileri tablosu (genişletilmiş)
-CREATE TABLE IF NOT EXISTS game_saves (
+-- Parti tablosu
+CREATE TABLE IF NOT EXISTS game_parties (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   character_id INT NOT NULL,
-  save_name VARCHAR(100) NOT NULL,
-  save_slot INT NOT NULL DEFAULT 1,
-  game_data JSON NOT NULL,
-  game_date VARCHAR(50),
-  game_version VARCHAR(20),
-  is_active BOOLEAN DEFAULT TRUE,
+  name VARCHAR(100) NOT NULL,
+  short_name VARCHAR(10) NOT NULL,
+  color_id VARCHAR(20) NOT NULL,
+  ideology JSON,
+  founder_id INT NOT NULL,
+  founder_name VARCHAR(100) NOT NULL,
+  support_base JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE CASCADE
 );
 
--- Çok oyunculu oyun oturumları tablosu
-CREATE TABLE IF NOT EXISTS game_sessions (
+-- Kayıtlı oyun verileri tablosu
+CREATE TABLE IF NOT EXISTS game_saves (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  session_code VARCHAR(10) NOT NULL UNIQUE,
-  host_id INT NOT NULL,
-  game_state JSON NOT NULL,
+  user_id INT NOT NULL,
+  character_id INT NOT NULL,
+  party_id INT,
+  save_name VARCHAR(100) NOT NULL,
+  save_slot INT NOT NULL DEFAULT 1,
+  game_data JSON NOT NULL,
+  game_date VARCHAR(50),
+  game_version VARCHAR(20),
   is_active BOOLEAN DEFAULT TRUE,
-  player_count INT DEFAULT 1,
-  max_players INT DEFAULT 4,
+  is_auto_save BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (host_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Oyun oturumlarındaki oyuncular tablosu
-CREATE TABLE IF NOT EXISTS session_players (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  session_id INT NOT NULL,
-  user_id INT NOT NULL,
-  player_data JSON NOT NULL,
-  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (session_id) REFERENCES game_sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  UNIQUE KEY unique_session_player (session_id, user_id)
+  FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE CASCADE,
+  FOREIGN KEY (party_id) REFERENCES game_parties(id) ON DELETE SET NULL
 );
 
--- Oyun olayları ve ilerleme verileri tablosu
+-- ----------------------
+-- OYUN MEKANİKLERİ TABLOLARI
+-- ----------------------
+
+-- Oyun ilerleme tablosu
 CREATE TABLE IF NOT EXISTS game_progress (
   id INT AUTO_INCREMENT PRIMARY KEY,
   character_id INT NOT NULL,
@@ -104,7 +92,7 @@ CREATE TABLE IF NOT EXISTS game_progress (
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE CASCADE
 );
 
--- Oyun güncellemeleri ve notlar
+-- Oyun güncellemeleri tablosu
 CREATE TABLE IF NOT EXISTS game_updates (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -117,6 +105,10 @@ CREATE TABLE IF NOT EXISTS game_updates (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE SET NULL
 );
+
+-- ----------------------
+-- BAŞARIM VE İSTATİSTİK TABLOLARI
+-- ----------------------
 
 -- Oyuncu istatistikleri tablosu
 CREATE TABLE IF NOT EXISTS player_stats (
@@ -152,4 +144,34 @@ CREATE TABLE IF NOT EXISTS user_achievements (
   FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
   FOREIGN KEY (character_id) REFERENCES game_characters(id) ON DELETE SET NULL,
   UNIQUE KEY unique_user_achievement (user_id, achievement_id)
+);
+
+-- ----------------------
+-- ÇOK OYUNCULU TABLOLARI
+-- ----------------------
+
+-- Çok oyunculu oyun oturumları tablosu
+CREATE TABLE IF NOT EXISTS game_sessions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  session_code VARCHAR(10) NOT NULL UNIQUE,
+  host_id INT NOT NULL,
+  game_state JSON NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  player_count INT DEFAULT 1,
+  max_players INT DEFAULT 4,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (host_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Oyun oturumlarındaki oyuncular tablosu
+CREATE TABLE IF NOT EXISTS session_players (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  session_id INT NOT NULL,
+  user_id INT NOT NULL,
+  player_data JSON NOT NULL,
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (session_id) REFERENCES game_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_session_player (session_id, user_id)
 );

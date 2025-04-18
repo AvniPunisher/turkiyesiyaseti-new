@@ -8,7 +8,7 @@ dotenv.config();
 console.log('Veritabanı bağlantı bilgileri:', {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  database: process.env.DB_NAME || 'railway', // Varsayılan olarak 'railway' veritabanını kullan
+  database: process.env.DB_NAME,
   port: process.env.DB_PORT
 });
 
@@ -16,11 +16,11 @@ console.log('Veritabanı bağlantı bilgileri:', {
 const createPool = () => {
   try {
     return mysql.createPool({
-      host: process.env.DB_HOST || 'localhost',
+      host: process.env.DB_HOST || 'centerbeam.proxy.rlwy.net',
       user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'railway', // Değiştirildi: 'game_db' yerine 'railway'
-      port: process.env.DB_PORT || 3306,
+      password: process.env.DB_PASSWORD || 'GlQDHJUcMhNEkIUEziauWOrfLJMqhtGi',
+      database: process.env.DB_NAME || 'railway',
+      port: process.env.DB_PORT || '13703',
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,

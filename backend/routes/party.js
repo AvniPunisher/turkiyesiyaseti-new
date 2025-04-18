@@ -7,6 +7,9 @@ const auth = require('../middleware/auth');
 // Yeni parti oluştur
 router.post('/create-party', auth, async (req, res) => {
   try {
+    // Debug için logla
+    console.log('Parti oluşturma isteği alındı:', req.body);
+    
     const userId = req.user.userId;
     const { party } = req.body;
     
@@ -20,6 +23,8 @@ router.post('/create-party', auth, async (req, res) => {
       [userId]
     );
     
+    console.log('Kullanıcı karakteri:', characters.length > 0 ? 'Bulundu' : 'Bulunamadı');
+    
     if (characters.length === 0) {
       return res.status(404).json({ success: false, message: 'Önce bir karakter oluşturmalısınız' });
     }
@@ -31,6 +36,8 @@ router.post('/create-party', auth, async (req, res) => {
       'SELECT * FROM game_parties WHERE user_id = ? AND character_id = ?',
       [userId, characterId]
     );
+    
+    console.log('Mevcut parti:', existingParties.length > 0 ? 'Bulundu' : 'Bulunamadı');
     
     // İdeoloji JSON formatına çevrilmesi
     const ideologyJson = JSON.stringify(party.ideology || {});
@@ -51,6 +58,7 @@ router.post('/create-party', auth, async (req, res) => {
     
     if (existingParties.length > 0) {
       // Mevcut partiyi güncelle
+      console.log('Mevcut parti güncelleniyor...');
       await pool.execute(
         `UPDATE game_parties SET 
          name = ?, short_name = ?, color_id = ?, 
@@ -91,6 +99,7 @@ router.post('/create-party', auth, async (req, res) => {
       
     } else {
       // Yeni parti oluştur
+      console.log('Yeni parti oluşturuluyor...');
       const [result] = await pool.execute(
         `INSERT INTO game_parties 
          (user_id, character_id, name, short_name, color_id, ideology, founder_id, founder_name, support_base)
@@ -109,6 +118,7 @@ router.post('/create-party', auth, async (req, res) => {
       );
       
       partyId = result.insertId;
+      console.log('Yeni parti oluşturuldu, ID:', partyId);
       
       // Yeni oluşturulan partiyi al
       const [newParty] = await pool.execute(
@@ -131,7 +141,7 @@ router.post('/create-party', auth, async (req, res) => {
     
   } catch (error) {
     console.error('Parti oluşturma hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
+    res.status(500).json({ success: false, message: 'Sunucu hatası: ' + error.message });
   }
 });
 
@@ -182,19 +192,39 @@ router.get('/get-party', auth, async (req, res) => {
 // Oyun kaydını parti bilgileriyle güncelle
 async function updateGameSaveWithParty(userId, characterId, partyId) {
   try {
+    // Önce game_saves tablosunun var olup olmadığını kontrol et
+    try {
+      await pool.execute('SELECT 1 FROM game_saves LIMIT 1');
+    } catch (tableError) {
+      console.error('game_saves tablosu mevcut değil:', tableError.message);
+      // Tablo yoksa oluştur
+      await createGameSavesTable();
+    }
+    
+    // Tabloyu oluşturduktan sonra devam et
     // Önce otomatik kayıt var mı kontrol et
     const [existingAutoSaves] = await pool.execute(
       'SELECT * FROM game_saves WHERE user_id = ? AND character_id = ? AND is_auto_save = TRUE',
       [userId, characterId]
     );
     
+    const gameData = {
+      score: 0,
+      level: 1,
+      partyId: partyId,
+      gameState: 'party_created',
+      gameDate: new Date().toISOString(),
+      gameVersion: '1.0.0',
+      lastSave: new Date().toISOString()
+    };
+    
     if (existingAutoSaves.length > 0) {
       // Mevcut oyun verisini al
-      let gameData = JSON.parse(existingAutoSaves[0].game_data);
+      let currentGameData = JSON.parse(existingAutoSaves[0].game_data);
       
       // Oyun verisini güncelle
-      gameData = {
-        ...gameData,
+      currentGameData = {
+        ...currentGameData,
         partyId: partyId,
         gameState: 'party_created',
         lastSave: new Date().toISOString()
@@ -207,22 +237,12 @@ async function updateGameSaveWithParty(userId, characterId, partyId) {
          game_data = ?, 
          updated_at = CURRENT_TIMESTAMP 
          WHERE id = ?`,
-        [partyId, JSON.stringify(gameData), existingAutoSaves[0].id]
+        [partyId, JSON.stringify(currentGameData), existingAutoSaves[0].id]
       );
       
       console.log(`Otomatik kayıt parti bilgisiyle güncellendi, id: ${existingAutoSaves[0].id}`);
     } else {
       // Yeni otomatik kayıt oluştur (eğer otomatik kayıt yoksa)
-      const initialGameData = {
-        score: 0,
-        level: 1,
-        partyId: partyId,
-        gameState: 'party_created',
-        gameDate: new Date().toISOString(),
-        gameVersion: '1.0.0',
-        lastSave: new Date().toISOString()
-      };
-      
       const [result] = await pool.execute(
         `INSERT INTO game_saves 
          (user_id, character_id, party_id, save_name, save_slot, game_data, game_date, game_version, is_auto_save) 
@@ -233,9 +253,9 @@ async function updateGameSaveWithParty(userId, characterId, partyId) {
           partyId,
           'Otomatik Kayıt',
           1, // Otomatik kayıtlar için slot 1'i kullanıyoruz
-          JSON.stringify(initialGameData),
-          initialGameData.gameDate,
-          initialGameData.gameVersion
+          JSON.stringify(gameData),
+          gameData.gameDate,
+          gameData.gameVersion
         ]
       );
       
@@ -245,6 +265,37 @@ async function updateGameSaveWithParty(userId, characterId, partyId) {
     return true;
   } catch (error) {
     console.error('Oyun kaydı güncelleme hatası:', error);
+    return false;
+  }
+}
+
+// game_saves tablosunu oluştur
+async function createGameSavesTable() {
+  try {
+    console.log('game_saves tablosu oluşturuluyor...');
+    
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS game_saves (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        character_id INT NOT NULL,
+        party_id INT,
+        save_name VARCHAR(100) NOT NULL,
+        save_slot INT NOT NULL DEFAULT 1,
+        game_data JSON NOT NULL,
+        game_date VARCHAR(50),
+        game_version VARCHAR(20),
+        is_active BOOLEAN DEFAULT TRUE,
+        is_auto_save BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log('game_saves tablosu başarıyla oluşturuldu.');
+    return true;
+  } catch (error) {
+    console.error('game_saves tablosu oluşturma hatası:', error);
     return false;
   }
 }

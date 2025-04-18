@@ -4,7 +4,7 @@
   height: 100vh;
   padding: 0;
   margin: 0;
-  font-family: 'Ubuntu', sans-serif;
+  font-family: 'Orbitron', sans-serif;
   display: flex;
   flex-direction: column;
   background: linear-gradient(to bottom, #1a2a3a, #0a1a2a);
@@ -50,7 +50,7 @@
   border-bottom: 3px solid transparent;
   cursor: pointer;
   color: white;
-  font-family: 'Ubuntu', sans-serif;
+  font-family: 'Orbitron', sans-serif;
   font-size: 0.9rem;
   transition: all 0.3s ease;
 }
@@ -96,7 +96,7 @@
   border-radius: 4px;
   background: rgba(0, 20, 40, 0.8);
   color: white;
-  font-family: 'Ubuntu', sans-serif;
+  font-family: 'Orbitron', sans-serif;
   transition: all 0.3s ease;
 }
 
@@ -229,7 +229,7 @@
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 4px;
-  font-family: 'Ubuntu', sans-serif;
+  font-family: 'Orbitron', sans-serif;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -425,6 +425,13 @@
   margin-top: 0;
   margin-bottom: 0.5rem;
   font-size: 1.5rem;
+}
+
+.party-ideology-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .party-ideology-tag {

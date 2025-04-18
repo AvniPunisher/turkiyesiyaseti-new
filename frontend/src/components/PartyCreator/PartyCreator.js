@@ -234,7 +234,7 @@ const PartyCreator = () => {
         console.error("Parti verileri localStorage'a kaydedilemedi:", e);
       }
       
-      // Parti verisini API'ye gönder
+      // Parti verisini API'ye göndermeyi dene
       try {
         const response = await apiHelper.post('/api/game/create-party', { party });
         
@@ -254,11 +254,6 @@ const PartyCreator = () => {
             navigate('/login', { state: { returnUrl: '/party-creator' } });
           } else if (response.networkError) {
             alert("Sunucuya bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin.");
-          } else if (response.notFoundError) {
-            alert(`API endpoint bulunamadı (404 hatası).\n\nÖNERİLEN ÇÖZÜMLER:\n1. Backend sunucunuzun çalıştığından emin olun\n2. API URL'sinin doğru olduğunu kontrol edin\n3. Backend geliştiricileriyle iletişime geçip "/api/game/create-party" endpoint'inin mevcut olduğundan emin olun`);
-          } else if (response.status === 500) {
-            console.error("Sunucu hatası detayları:", response.data);
-            alert("Sunucu hatası: API'de bir problem oluştu. Lütfen daha sonra tekrar deneyin.");
           } else {
             alert(`Parti oluşturulurken bir hata oluştu: ${response.message}`);
           }

@@ -10,16 +10,18 @@ const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
 const characterRoutes = require('./routes/character');
 const gameRoutes = require('./routes/game');
-const partyRoutes = require('./routes/party'); // Yeni: Parti route'ları
+const partyRoutes = require('./routes/party'); // Parti route'larını import ediyoruz
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // Development için CSP'yi kapatabilirsiniz
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 
@@ -36,7 +38,7 @@ testConnection()
 app.use('/api/auth', authRoutes);
 app.use('/api/character', characterRoutes);
 app.use('/api/game', gameRoutes);
-app.use('/api/party', partyRoutes); // Yeni: Parti API rotası
+app.use('/api/party', partyRoutes); // Parti route'larını kullanıma alıyoruz
 
 // Ana endpoint (sağlık kontrolü)
 app.get('/api/health-check', (req, res) => {
@@ -49,6 +51,7 @@ app.get('/api/health-check', (req, res) => {
 
 // 404 handler
 app.use((req, res) => {
+  console.log(`404 hatası - İstek yolu: ${req.originalUrl}`); // Debug için log
   res.status(404).json({
     success: false,
     message: 'İstenen endpoint bulunamadı',

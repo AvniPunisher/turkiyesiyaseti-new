@@ -1,6 +1,12 @@
 // backend/routes/game.js
-// Mevcut dosyanıza aşağıdaki endpoint'i ekleyin
+// Eksik olan router tanımını ekleyin
 
+const express = require('express');
+const router = express.Router();
+const { pool } = require('../config/db');
+const auth = require('../middleware/auth');
+
+// Mevcut dosyanıza aşağıdaki endpoint'i ekleyin
 // Parti bilgisini getir
 router.get('/get-party', auth, async (req, res) => {
   try {
@@ -299,8 +305,7 @@ router.post('/create-party', auth, async (req, res) => {
   }
 });
 
-// Oyun kaydetme fonksiyonunun güncellenmesi (zaten mevcutsa güncelleme yapın)
-// Bu kod parçasını mevcut save-game route'unuza entegre edin
+// Oyun kaydetme fonksiyonunu güncelleme (mevcut fonksiyonda değişiklik)
 router.post('/save-game', auth, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -368,7 +373,6 @@ router.post('/save-game', auth, async (req, res) => {
           gameDataJson,
           gameData.saveDate || new Date().toISOString(),
           gameData.gameVersion || '1.0.0',
-          1 // is_active
         ]
       );
       
@@ -383,3 +387,6 @@ router.post('/save-game', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Sunucu hatası' });
   }
 });
+
+// Bu satırı eklemeyi UNUTMAYIN! Tüm rotalarınızın çalışması için gerekli
+module.exports = router;

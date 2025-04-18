@@ -8,7 +8,7 @@ dotenv.config();
 console.log('Veritabanı bağlantı bilgileri:', {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  database: process.env.DB_NAME,
+  database: process.env.DB_NAME || 'railway', // Varsayılan olarak 'railway' veritabanını kullan
   port: process.env.DB_PORT
 });
 
@@ -19,7 +19,7 @@ const createPool = () => {
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'game_db',
+      database: process.env.DB_NAME || 'railway', // Değiştirildi: 'game_db' yerine 'railway'
       port: process.env.DB_PORT || 3306,
       waitForConnections: true,
       connectionLimit: 10,

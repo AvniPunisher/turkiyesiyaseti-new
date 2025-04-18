@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import axios from 'axios';
+import apiHelper from '../services/apiHelper';
 
 const GameContainer = styled.div`
   display: flex;
@@ -105,6 +105,16 @@ const CharacterLabel = styled.span`
   margin-right: 0.5rem;
 `;
 
+const PartyBadge = styled.div`
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-right: 8px;
+  font-weight: bold;
+  background-color: ${props => props.color || '#555555'};
+  color: ${props => getContrastTextColor(props.color) || '#ffffff'};
+`;
+
 const ButtonsContainer = styled.div`
   display: flex;
   gap: 1rem;
@@ -118,14 +128,32 @@ const LoadingText = styled.div`
   margin: 2rem 0;
 `;
 
+// Kontrastlı metin rengi seçimi için yardımcı fonksiyon
+const getContrastTextColor = (hexColor) => {
+  if (!hexColor || hexColor === '#555555') return '#ffffff';
+  
+  // HEX'i RGB'ye dönüştür
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  
+  // Parlaklık formülü (0.299*R + 0.587*G + 0.114*B)
+  const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+  
+  // Parlaklık 128'den azsa beyaz, değilse siyah döndür
+  return brightness < 128 ? '#ffffff' : '#000000';
+};
+
 const SinglePlayer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [gameStarted, setGameStarted] = useState(false);
   const [gamePaused, setGamePaused] = useState(false);
   const [character, setCharacter] = useState(null);
+  const [party, setParty] = useState(null);
   const [hasCharacter, setHasCharacter] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [autoSave, setAutoSave] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [gameData, setGameData] = useState({
     score: 0,
@@ -133,48 +161,115 @@ const SinglePlayer = () => {
     // Diğer oyun verileri...
   });
   
-  // Oyun açılışında karakter kontrolü
+  // Oyun açılışında hazırlık
   useEffect(() => {
-    // İlk olarak URL'den gelen karakter bilgisini kontrol et
-    if (location.state?.character) {
-      setCharacter(location.state.character);
-      setHasCharacter(true);
-      setIsLoading(false);
-      setAuthChecked(true);
+    // 1. Location state'ten yüklenen oyun kontrolü
+    if (location.state?.loadedGame) {
+      console.log("URL'den oyun verisi alındı, oyun yükleniyor...");
+      loadGameFromState(location.state.loadedGame);
       return;
     }
     
-    // Kullanıcının giriş yapıp yapmadığını kontrol et
+    // 2. Kullanıcı giriş kontrolü
     const token = localStorage.getItem('token');
     
     if (!token) {
       console.log("Token bulunamadı, giriş sayfasına yönlendiriliyor");
-      // Kullanıcı giriş yapmamış, login sayfasına yönlendir
       navigate('/login', { state: { returnUrl: '/character-creator' } });
       return;
     }
     
-    // Kullanıcı giriş yapmış, karakteri var mı kontrol et
-    checkExistingCharacter(token);
+    // 3. Otomatik kayıt kontrolü
+    checkAutoSave(token);
   }, [location.pathname]); // sadece path değişirse çalışsın
   
-  // Mevcut kaydedilmiş karakteri kontrol et
-  const checkExistingCharacter = async (token) => {
+  // URL state'inden gelen oyun verisini yükle
+  const loadGameFromState = async (gameInfo) => {
     try {
       setIsLoading(true);
+      
+      // Oyun verilerini yükle
+      const response = await apiHelper.get(`/api/game/load-game/${gameInfo.id}`);
+      
+      if (response.success) {
+        const saveData = response.data.saveData;
+        
+        // Karakter, parti ve oyun verilerini ayarla
+        setCharacter(saveData.character);
+        setParty(saveData.party);
+        setGameData(saveData.gameData);
+        setHasCharacter(true);
+        
+        // Oyun durumuna göre başlangıç ekranını ayarla
+        if (saveData.gameData.gameState === 'active' || saveData.gameData.gameState === 'paused') {
+          setGameStarted(true);
+          setGamePaused(saveData.gameData.gameState === 'paused');
+        }
+      } else {
+        console.error("Oyun yükleme başarısız:", response.message);
+        alert("Oyun yüklenirken bir hata oluştu. Ana menüye yönlendiriliyorsunuz.");
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Oyun yükleme hatası:", error);
+      alert("Sunucu bağlantı hatası. Ana menüye yönlendiriliyorsunuz.");
+      navigate('/');
+    } finally {
+      setIsLoading(false);
+      setAuthChecked(true);
+    }
+  };
+  
+  // Otomatik kayıtlı oyun kontrolü
+  const checkAutoSave = async (token) => {
+    try {
+      setIsLoading(true);
+      
+      // Kayıtlı oyunları getir
+      const response = await apiHelper.get('/api/game/saved-games');
+      
+      if (response.success && response.data.savedGames?.length > 0) {
+        // Otomatik kayıtları filtrele
+        const autoSaves = response.data.savedGames.filter(game => game.isAutoSave);
+        
+        if (autoSaves.length > 0) {
+          console.log("Otomatik kayıt bulundu:", autoSaves[0]);
+          setAutoSave(autoSaves[0]);
+          setHasCharacter(true);
+          
+          // Otomatik kayıt direkt yüklenmez, kullanıcıya seçenek sunulur
+        } else {
+          // Otomatik kayıt yoksa karakter kontrolü yap
+          checkExistingCharacter(token);
+        }
+      } else {
+        // Kayıtlı oyun yoksa karakter kontrolü yap
+        checkExistingCharacter(token);
+      }
+    } catch (error) {
+      console.error("Otomatik kayıt kontrolü hatası:", error);
+      checkExistingCharacter(token);
+    } finally {
+      setIsLoading(false);
+      setAuthChecked(true);
+    }
+  };
+  
+  // Karakter kontrolü
+  const checkExistingCharacter = async (token) => {
+    try {
       console.log("Karakter kontrol ediliyor...");
       
-      // Veritabanından karakter bilgilerini çek
-      const response = await axios.get('http://localhost:5001/api/game/get-character', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      // Karakter bilgilerini getir
+      const charResponse = await apiHelper.get('/api/game/get-character');
       
-      if (response.data.success && response.data.character) {
-        console.log("Karakter bulundu:", response.data.character);
-        setCharacter(response.data.character);
+      if (charResponse.success && charResponse.data.character) {
+        console.log("Karakter bulundu:", charResponse.data.character);
+        setCharacter(charResponse.data.character);
         setHasCharacter(true);
+        
+        // Karakter varsa parti kontrolü yap
+        checkExistingParty(token, charResponse.data.character.id);
       } else {
         console.log("Karakter bulunamadı");
         setHasCharacter(false);
@@ -182,8 +277,8 @@ const SinglePlayer = () => {
     } catch (error) {
       console.error('Karakter kontrolü hatası:', error);
       
-      // Token geçersizse veya süresi dolmuşsa
-      if (error.response && error.response.status === 401) {
+      // Token geçersizse giriş sayfasına yönlendir
+      if (error.response?.status === 401) {
         console.log("Token geçersiz, giriş sayfasına yönlendiriliyor");
         localStorage.removeItem('token');
         navigate('/login', { state: { returnUrl: '/character-creator' } });
@@ -191,10 +286,69 @@ const SinglePlayer = () => {
       }
       
       setHasCharacter(false);
+    }
+  };
+  
+  // Parti kontrolü
+  const checkExistingParty = async (token, characterId) => {
+    try {
+      console.log("Parti kontrol ediliyor...");
+      
+      // Parti bilgilerini getir
+      const partyResponse = await apiHelper.get('/api/game/get-party');
+      
+      if (partyResponse.success && partyResponse.data.party) {
+        console.log("Parti bulundu:", partyResponse.data.party);
+        setParty(partyResponse.data.party);
+      } else {
+        console.log("Parti bulunamadı");
+      }
+    } catch (error) {
+      console.error('Parti kontrolü hatası:', error);
+      // Parti yoksa sorun değil, oyuna devam edilebilir
+    }
+  };
+  
+  // Otomatik kaydı yükle
+  const loadAutoSave = async () => {
+    if (!autoSave) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Otomatik kaydı getir
+      const response = await apiHelper.get(`/api/game/load-game/${autoSave.id}`);
+      
+      if (response.success) {
+        const saveData = response.data.saveData;
+        
+        // Karakter, parti ve oyun verilerini ayarla
+        setCharacter(saveData.character);
+        setParty(saveData.party);
+        setGameData(saveData.gameData);
+        
+        // Oyun durumuna göre başlangıç ekranını ayarla
+        if (saveData.gameData.gameState === 'active' || saveData.gameData.gameState === 'paused') {
+          setGameStarted(true);
+          setGamePaused(saveData.gameData.gameState === 'paused');
+        }
+      } else {
+        console.error("Otomatik kayıt yükleme başarısız:", response.message);
+        // Karakter ve parti bilgileri checkExistingCharacter'dan gelir
+      }
+    } catch (error) {
+      console.error("Otomatik kayıt yükleme hatası:", error);
+      // Karakter ve parti bilgileri checkExistingCharacter'dan gelir
     } finally {
       setIsLoading(false);
-      setAuthChecked(true);
+      setAutoSave(null); // Otomatik kayıt göstergesini kaldır
     }
+  };
+  
+  // Yeni oyun başlat
+  const startNewGame = () => {
+    setAutoSave(null); // Otomatik kayıt göstergesini kaldır
+    // Karakterimiz ve varsa partimiz ile direkt yeni oyun başlatılır
   };
   
   // Oyun döngüsü
@@ -208,39 +362,64 @@ const SinglePlayer = () => {
     };
   }, [gameStarted, gamePaused]);
   
+  // Oyunu başlat
   const startGame = () => {
-    // Oyunu başlat ve dashboard'a yönlendir
-    navigate('/game-dashboard', { state: { character } });
+    // Oyun verisini güncelle
+    const updatedGameData = {
+      ...gameData,
+      gameState: 'active',
+      lastSave: new Date().toISOString()
+    };
+    
+    setGameData(updatedGameData);
+    setGameStarted(true);
+    setGamePaused(false);
+    
+    // Otomatik kayıt güncelle
+    updateAutoSave(updatedGameData);
   };
   
+  // Oyunu durdur
   const pauseGame = () => {
-    setGamePaused(!gamePaused);
+    // Durdurulmuş/devam edilmiş durumunu değiştir
+    const isPaused = !gamePaused;
+    
+    // Oyun verisini güncelle
+    const updatedGameData = {
+      ...gameData,
+      gameState: isPaused ? 'paused' : 'active',
+      lastSave: new Date().toISOString()
+    };
+    
+    setGameData(updatedGameData);
+    setGamePaused(isPaused);
+    
+    // Otomatik kayıt güncelle
+    updateAutoSave(updatedGameData);
   };
   
+  // Oyunu kaydet
   const saveGame = async () => {
     try {
-      const token = localStorage.getItem('token');
+      // Oyunu manuel olarak kaydet (yeni bir slot'a)
+      const saveSlot = 2; // Manuel kayıtlar için 2 ve üstü slotları kullanıyoruz
       
-      if (!token) {
-        alert('Oyunu kaydetmek için giriş yapmanız gerekmektedir.');
-        return;
-      }
+      const updatedGameData = {
+        ...gameData,
+        lastSave: new Date().toISOString()
+      };
       
-      // Oyun verisini veritabanına kaydet
-      const response = await axios.post('http://localhost:5000/api/game/save-game', {
-        gameData,
+      const response = await apiHelper.post('/api/game/save-game', {
+        gameData: updatedGameData,
         saveName: `${character.fullName}'in Oyunu`,
-        saveSlot: 1
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        saveSlot
       });
       
-      if (response.data.success) {
+      if (response.success) {
         alert('Oyun başarıyla kaydedildi!');
+        setGameData(updatedGameData);
       } else {
-        throw new Error(response.data.message);
+        throw new Error(response.message);
       }
     } catch (error) {
       console.error('Oyun kaydedilirken hata:', error);
@@ -248,10 +427,27 @@ const SinglePlayer = () => {
     }
   };
   
+  // Otomatik kayıt güncelleme
+  const updateAutoSave = async (updatedGameData) => {
+    try {
+      const response = await apiHelper.post('/api/game/update-auto-save', {
+        gameData: updatedGameData
+      });
+      
+      if (!response.success) {
+        console.error("Otomatik kayıt güncellenemedi:", response.message);
+      }
+    } catch (error) {
+      console.error("Otomatik kayıt güncelleme hatası:", error);
+    }
+  };
+  
+  // Ana menüye dön
   const returnToMenu = () => {
     navigate('/');
   };
   
+  // Yeni karakter oluştur
   const createNewCharacter = () => {
     navigate('/character-creator');
   };
@@ -286,6 +482,7 @@ const SinglePlayer = () => {
       </GameHeader>
       
       <GameCanvas>
+        {/* Karakter bulunamadığında */}
         {authChecked && !hasCharacter && (
           <GameOverlay>
             <OverlayText>Karakter Bulunamadı</OverlayText>
@@ -296,7 +493,47 @@ const SinglePlayer = () => {
           </GameOverlay>
         )}
         
-        {hasCharacter && !gameStarted && (
+        {/* Otomatik kayıt varsa göster */}
+        {authChecked && hasCharacter && autoSave && !gameStarted && (
+          <GameOverlay>
+            <OverlayText>Kayıtlı Oyun Bulundu</OverlayText>
+            <CharacterInfoCard>
+              <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'rgba(0, 200, 255, 0.8)' }}>
+                Otomatik Kayıt Bilgileri
+              </h3>
+              
+              <CharacterDetail>
+                <CharacterLabel>Karakter:</CharacterLabel>
+                <span>{autoSave.characterName}</span>
+              </CharacterDetail>
+              
+              {autoSave.partyName && (
+                <CharacterDetail>
+                  <CharacterLabel>Parti:</CharacterLabel>
+                  <span>
+                    <PartyBadge color={autoSave.partyColor}>
+                      {autoSave.partyShortName}
+                    </PartyBadge>
+                    {autoSave.partyName}
+                  </span>
+                </CharacterDetail>
+              )}
+              
+              <CharacterDetail>
+                <CharacterLabel>Son Güncelleme:</CharacterLabel>
+                <span>{new Date(autoSave.updatedAt).toLocaleString('tr-TR')}</span>
+              </CharacterDetail>
+            </CharacterInfoCard>
+            
+            <ButtonsContainer>
+              <Button onClick={loadAutoSave}>Kayıtlı Oyunu Yükle</Button>
+              <Button onClick={startNewGame}>Yeni Oyun Başlat</Button>
+            </ButtonsContainer>
+          </GameOverlay>
+        )}
+        
+        {/* Karakteri olan ama henüz oyuna başlamamış kullanıcılar için */}
+        {hasCharacter && !autoSave && !gameStarted && (
           <GameOverlay>
             <OverlayText>Oyunu Başlatmak İçin Hazır mısın?</OverlayText>
             
@@ -329,16 +566,31 @@ const SinglePlayer = () => {
                     character.ideology.overallPosition < 80 ? "Merkez Sağ" : "Sağ") 
                   : "Bilinmiyor"}</span>
               </CharacterDetail>
+              
+              {party && (
+                <CharacterDetail>
+                  <CharacterLabel>Parti:</CharacterLabel>
+                  <span>
+                    <PartyBadge color={party.colorId}>
+                      {party.shortName}
+                    </PartyBadge>
+                    {party.name}
+                  </span>
+                </CharacterDetail>
+              )}
             </CharacterInfoCard>
             
             {/* Parti kurma veya oyunu başlatma seçenekleri */}
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <Button onClick={() => navigate('/party-creator', { state: { character } })}>Parti Kur</Button>
+              {!party ? (
+                <Button onClick={() => navigate('/party-creator')}>Parti Kur</Button>
+              ) : null}
               <Button onClick={startGame}>Oyunu Başlat</Button>
             </div>
           </GameOverlay>
         )}
         
+        {/* Oyun duraklatıldığında */}
         {gamePaused && (
           <GameOverlay>
             <OverlayText>Oyun Duraklatıldı</OverlayText>
@@ -351,8 +603,17 @@ const SinglePlayer = () => {
         
         {/* Oyun canvas'ı buraya gelecek */}
         {gameStarted && !gamePaused && (
-          <div style={{ fontSize: '1.5rem' }}>
-            Oyun Alanı - Aktif Oyun
+          <div style={{ fontSize: '1.5rem', textAlign: 'center' }}>
+            <h3>Aktif Oyun</h3>
+            {party && (
+              <div>
+                <PartyBadge color={party.colorId}>
+                  {party.shortName}
+                </PartyBadge>
+                {party.name} partisinin lideri olarak ülke yönetimini ele geçirmeye çalışıyorsunuz.
+              </div>
+            )}
+            <p>Oyun modülleri entegrasyonu devam ediyor...</p>
           </div>
         )}
       </GameCanvas>

@@ -26,6 +26,8 @@ router.post('/create-character', auth, async (req, res) => {
     const dynamicValuesJson = JSON.stringify(character.dynamicValues || {});
     const expertiseJson = JSON.stringify(character.expertise || []);
     
+    let characterId;
+    
     if (existingCharacters.length > 0) {
       // Mevcut karakteri güncelle
       await pool.execute(
@@ -55,8 +57,13 @@ router.post('/create-character', auth, async (req, res) => {
         [userId]
       );
       
+      characterId = updatedCharacter[0].id;
+      
       // Döndürülecek karakter verisi
       const characterData = prepareCharacterData(updatedCharacter[0]);
+      
+      // Otomatik kayıt oluştur (mevcut karakteri güncellediğimizde)
+      await createAutoSave(userId, characterId);
       
       return res.status(200).json({
         success: true,
@@ -66,7 +73,7 @@ router.post('/create-character', auth, async (req, res) => {
       
     } else {
       // Yeni karakter oluştur
-      await pool.execute(
+      const [result] = await pool.execute(
         `INSERT INTO game_characters 
          (user_id, game_name, full_name, age, gender, birth_place, profession, ideology, stats, dynamic_values, expertise)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -85,14 +92,19 @@ router.post('/create-character', auth, async (req, res) => {
         ]
       );
       
+      characterId = result.insertId;
+      
       // Yeni oluşturulan karakteri al
       const [newCharacter] = await pool.execute(
-        'SELECT * FROM game_characters WHERE user_id = ?',
-        [userId]
+        'SELECT * FROM game_characters WHERE id = ?',
+        [characterId]
       );
       
       // Döndürülecek karakter verisi
       const characterData = prepareCharacterData(newCharacter[0]);
+      
+      // Otomatik kayıt oluştur (yeni karakter oluşturulduğunda)
+      await createAutoSave(userId, characterId);
       
       return res.status(201).json({
         success: true,
@@ -167,6 +179,66 @@ router.delete('/delete-character', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Sunucu hatası' });
   }
 });
+
+// Otomatik kayıt oluşturan yardımcı fonksiyon
+async function createAutoSave(userId, characterId) {
+  try {
+    // Önce bu kullanıcı için otomatik kayıt var mı kontrol et
+    const [existingAutoSaves] = await pool.execute(
+      'SELECT * FROM game_saves WHERE user_id = ? AND character_id = ? AND is_auto_save = TRUE',
+      [userId, characterId]
+    );
+    
+    // Başlangıç oyun verisi
+    const initialGameData = {
+      score: 0,
+      level: 1,
+      gameDate: new Date().toISOString(),
+      gameVersion: '1.0.0',
+      gameState: 'created',
+      lastSave: new Date().toISOString()
+    };
+    
+    const gameDataJson = JSON.stringify(initialGameData);
+    const saveName = 'Otomatik Kayıt';
+    
+    if (existingAutoSaves.length > 0) {
+      // Mevcut otomatik kaydı güncelle
+      await pool.execute(
+        `UPDATE game_saves SET 
+         game_data = ?, 
+         updated_at = CURRENT_TIMESTAMP 
+         WHERE id = ?`,
+        [gameDataJson, existingAutoSaves[0].id]
+      );
+      
+      console.log(`Otomatik kayıt güncellendi, id: ${existingAutoSaves[0].id}`);
+    } else {
+      // Yeni otomatik kayıt oluştur
+      const [result] = await pool.execute(
+        `INSERT INTO game_saves 
+         (user_id, character_id, save_name, save_slot, game_data, game_date, game_version, is_auto_save) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
+        [
+          userId,
+          characterId,
+          saveName,
+          1, // Otomatik kayıtlar için slot 1'i kullanıyoruz
+          gameDataJson,
+          initialGameData.gameDate,
+          initialGameData.gameVersion
+        ]
+      );
+      
+      console.log(`Yeni otomatik kayıt oluşturuldu, id: ${result.insertId}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Otomatik kayıt oluşturma hatası:', error);
+    return false;
+  }
+}
 
 // Veritabanından gelen karakter verisini istemci için hazırla
 function prepareCharacterData(dbCharacter) {

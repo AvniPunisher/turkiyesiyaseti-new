@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS user_achievements (
   UNIQUE KEY unique_user_achievement (user_id, achievement_id)
 );
 
+-- game_parties tablosu oluşturma
 CREATE TABLE IF NOT EXISTS game_parties (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,

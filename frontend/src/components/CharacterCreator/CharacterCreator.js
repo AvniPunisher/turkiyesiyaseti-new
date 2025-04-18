@@ -127,10 +127,10 @@ const CharacterCreator = () => {
 
   // İdeolojik etiketler
   const getIdeologicalLabel = (position) => {
-    if (position < 20) return "Sol";
-    if (position < 40) return "Merkez Sol";
-    if (position < 60) return "Merkez";
-    if (position < 80) return "Merkez Sağ";
+    if (position < 35) return "Sol";
+    if (position < 48) return "Merkez Sol";
+    if (position < 52) return "Merkez";
+    if (position < 65) return "Merkez Sağ";
     return "Sağ";
   };
 
@@ -139,10 +139,50 @@ const CharacterCreator = () => {
     let totalWeight = 0;
     let weightedSum = 0;
     
+    // İdeoloji eksenleri için değerleri ve ağırlıkları belirle
+    const axisWeightMap = {
+      economic: { left: 0, right: 100, weight: 1.5 },
+      governance: { left: 0, right: 100, weight: 0.7 },
+      cultural: { left: 0, right: 100, weight: 1.3 },
+      identity: { left: 0, right: 100, weight: 1.2 },
+      religion: { left: 0, right: 100, weight: 1.4 },
+      foreign: { left: 0, right: 100, weight: 0.6 },
+      change: { left: 0, right: 100, weight: 1.0 }
+    };
+    
     for (const axis in ideologyAxes) {
       if (values[axis] !== undefined) {
-        weightedSum += values[axis] * ideologyAxes[axis].weight;
-        totalWeight += ideologyAxes[axis].weight;
+        // Eksen değerinin sağ-sol spektrumuna göre katkısını hesapla
+        let axisContribution = values[axis];
+        
+        // Bazı eksenlerde değer ters olabilir
+        // Örneğin: Ekonomik eksende "Devletçi" (0) sola, "Piyasacı" (100) sağa karşılık gelir
+        if (axis === "economic") {
+          // Ekonomik değer sol ağırlıklı olmalı
+          axisContribution = values[axis];
+        } else if (axis === "governance") {
+          // Yönetim ekseni için adem-i merkezi (0) sol, merkezi (100) sağ olarak değerlendir
+          axisContribution = values[axis];
+        } else if (axis === "cultural") {
+          // Kültürel eksende ilerici (0) sol, gelenekçi (100) sağ olarak değerlendir
+          axisContribution = values[axis];
+        } else if (axis === "identity") {
+          // Kimlik ekseninde çoğulcu (0) sol, milliyetçi (100) sağ olarak değerlendir
+          axisContribution = values[axis];
+        } else if (axis === "religion") {
+          // İnanç-devlet ilişkisi ekseninde laik (0) sol, dinsel (100) sağ olarak değerlendir
+          axisContribution = values[axis];
+        } else if (axis === "foreign") {
+          // Dış politikada batı yanlısı (0-50) merkez sol, doğu yönelimli (50-100) sağ
+          // Dengeli (50) merkez olarak değerlendir
+          axisContribution = values[axis];
+        } else if (axis === "change") {
+          // Toplumsal değişimde devrimci (0) sol, gelenekçi (100) sağ olarak değerlendir
+          axisContribution = values[axis];
+        }
+        
+        weightedSum += axisContribution * (ideologyAxes[axis].weight || 1);
+        totalWeight += (ideologyAxes[axis].weight || 1);
       }
     }
     

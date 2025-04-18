@@ -360,4 +360,11 @@ const LoadGame = () => {
       <Controls>
         <Button onClick={returnToMenu}>Ana Menü</Button>
         {isLoggedIn && !loading && savedGames.length > 0 && (
-          <Button onClick
+          <Button onClick={fetchSavedGames}>Yenile</Button>
+        )}
+      </Controls>
+    </LoadGameContainer>
+  );
+};
+
+export default LoadGame;

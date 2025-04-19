@@ -1,78 +1,60 @@
-// backend/app.js
+// app.js
 const express = require('express');
 const cors = require('cors');
-const morgan = require('morgan');
-const helmet = require('helmet');
-const { testConnection } = require('./config/db');
+const path = require('path');
 const dotenv = require('dotenv');
 
-// Routes
+// Route dosyaları
 const authRoutes = require('./routes/auth');
 const characterRoutes = require('./routes/character');
 const gameRoutes = require('./routes/game');
-const partyRoutes = require('./routes/party'); // Parti route'larını import ediyoruz
 
+// Veritabanı bağlantısı
+const { testConnection } = require('./config/db');
+
+// .env dosyasını yükle
 dotenv.config();
 
+// Express uygulamasını oluştur
 const app = express();
-const PORT = process.env.PORT || 5001;
 
-// Middleware
+// CORS ve body-parser middleware'leri
 app.use(cors());
-app.use(helmet({
-  contentSecurityPolicy: false, // Development için CSP'yi kapatabilirsiniz
-}));
-app.use(morgan('dev'));
 app.use(express.json());
 
-// Veritabanı bağlantısını test et
-testConnection()
-  .then(success => {
-    console.log('Veritabanı bağlantı testi:', success ? 'Başarılı' : 'Başarısız');
-  })
-  .catch(err => {
-    console.error('Veritabanı bağlantı testi hatası:', err);
-  });
-
-// Route'ları tanımla
+// API rotaları
 app.use('/api/auth', authRoutes);
 app.use('/api/character', characterRoutes);
 app.use('/api/game', gameRoutes);
-app.use('/api/party', partyRoutes); // Parti route'larını kullanıma alıyoruz
 
-// Ana endpoint (sağlık kontrolü)
+// Sağlık kontrolü endpoint'i
 app.get('/api/health-check', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'API aktif ve çalışıyor',
-    timestamp: new Date().toISOString()
+  res.status(200).json({ status: 'ok', message: 'API aktif ve çalışıyor' });
+});
+
+// Veritabanı bağlantısını test et
+testConnection()
+  .then(connected => {
+    if (connected) {
+      console.log('Veritabanı bağlantısı başarılı');
+    } else {
+      console.error('Veritabanı bağlantısı başarısız');
+    }
+  })
+  .catch(err => {
+    console.error('Veritabanı bağlantısı test edilirken hata:', err);
   });
-});
 
-// 404 handler
-app.use((req, res) => {
-  console.log(`404 hatası - İstek yolu: ${req.originalUrl}`); // Debug için log
-  res.status(404).json({
-    success: false,
-    message: 'İstenen endpoint bulunamadı',
-    path: req.originalUrl
+// Production modunda frontend dosyalarını serve et
+if (process.env.NODE_ENV === 'production') {
+  // Frontend build klasörünü statik olarak serve et
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+  // Tüm GET isteklerini index.html'e yönlendir (React routing için)
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../frontend/build', 'index.html'));
   });
-});
+}
 
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Sunucu hatası:', err);
-  
-  res.status(500).json({
-    success: false,
-    message: 'Sunucu hatası',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
-// Sunucuyu başlat
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
+// Modül olarak dışa aktar
 module.exports = app;

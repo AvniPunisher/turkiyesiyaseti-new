@@ -1,0 +1,23 @@
+{
+  "name": "turkiye-siyaset-simulasyonu",
+  "version": "1.0.0",
+  "description": "Türkiye Siyaset Simulasyonu Monorepo",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "server": "nodemon backend/server.js",
+    "client": "cd frontend && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-backend": "cd backend && npm install",
+    "install-frontend": "cd frontend && npm install",
+    "build-frontend": "cd frontend && npm run build",
+    "heroku-postbuild": "npm run install-backend && npm run install-frontend && npm run build-frontend"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "nodemon": "^2.0.22"
+  }
+}

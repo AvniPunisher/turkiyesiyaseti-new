@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
+import ReCAPTCHA from "react-google-recaptcha";
 
 const RegisterContainer = styled.div`
   display: flex;
@@ -63,6 +64,11 @@ const FormButton = styled.button`
   &:hover {
     background: rgba(0, 150, 255, 0.7);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const BackLink = styled(Link)`
@@ -84,6 +90,29 @@ const ErrorMessage = styled.p`
   text-align: center;
 `;
 
+const PasswordStrengthContainer = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const PasswordCriteriaContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+  font-size: 0.8rem;
+`;
+
+const PasswordCriteriaItem = styled.span`
+  color: ${props => props.met ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)'};
+  margin-bottom: 0.2rem;
+`;
+
+const RecaptchaContainer = styled.div`
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+`;
+
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -91,13 +120,67 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    recaptchaValue: null
   });
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    valid: false,
+    message: '',
+    criteria: {
+      length: false,
+      uppercase: false,
+      lowercase: false,
+      number: false,
+      special: false
+    }
+  });
+  
+  const checkPasswordStrength = (password) => {
+    const criteria = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+    
+    const valid = Object.values(criteria).every(c => c);
+    
+    let message = '';
+    if (!valid) {
+      message = 'Şifre şunları içermelidir:';
+      if (!criteria.length) message += ' en az 8 karakter,';
+      if (!criteria.uppercase) message += ' büyük harf,';
+      if (!criteria.lowercase) message += ' küçük harf,';
+      if (!criteria.number) message += ' sayı,';
+      if (!criteria.special) message += ' özel karakter,';
+      message = message.slice(0, -1); // Son virgülü kaldır
+    }
+    
+    setPasswordStrength({
+      valid,
+      message,
+      criteria
+    });
+  };
   
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+    
+    // Şifre değiştiğinde karmaşıklığını kontrol et
+    if (e.target.name === 'password') {
+      checkPasswordStrength(e.target.value);
+    }
+  };
+  
+  const handleRecaptchaChange = (value) => {
+    setFormData({
+      ...formData,
+      recaptchaValue: value
     });
   };
   
@@ -110,6 +193,18 @@ const Register = () => {
       return;
     }
     
+    if (!passwordStrength.valid) {
+      setError(passwordStrength.message);
+      return;
+    }
+
+    if (!formData.recaptchaValue) {
+      setError('Lütfen robot olmadığınızı doğrulayın');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
     try {
       console.log("Kayıt isteği gönderiliyor:", {
         username: formData.username,
@@ -121,13 +216,14 @@ const Register = () => {
       const response = await axios.post('https://api.turkiyesiyaseti.net/api/auth/register', {
         username: formData.username,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        recaptchaValue: formData.recaptchaValue
       });
       
       console.log("Kayıt başarılı:", response.data);
       
       // Başarılı kayıt sonrası giriş sayfasına yönlendir
-      navigate('/login', { state: { message: 'Kayıt işlemi başarılı. Lütfen giriş yapın.' } });
+      navigate('/login', { state: { message: 'Kayıt işlemi başarılı. Lütfen e-posta adresinizi doğrulayıp giriş yapın.' } });
     } catch (err) {
       console.error("Kayıt hatası:", err);
       
@@ -144,6 +240,8 @@ const Register = () => {
       else {
         setError('Kayıt olurken bir hata oluştu: ' + err.message);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -181,6 +279,16 @@ const Register = () => {
           required
         />
         
+        <PasswordStrengthContainer>
+          <PasswordCriteriaContainer>
+            <PasswordCriteriaItem met={passwordStrength.criteria.length}>8+ Karakter</PasswordCriteriaItem>
+            <PasswordCriteriaItem met={passwordStrength.criteria.uppercase}>Büyük Harf</PasswordCriteriaItem>
+            <PasswordCriteriaItem met={passwordStrength.criteria.lowercase}>Küçük Harf</PasswordCriteriaItem>
+            <PasswordCriteriaItem met={passwordStrength.criteria.number}>Sayı</PasswordCriteriaItem>
+            <PasswordCriteriaItem met={passwordStrength.criteria.special}>Özel Karakter</PasswordCriteriaItem>
+          </PasswordCriteriaContainer>
+        </PasswordStrengthContainer>
+        
         <FormInput
           type="password"
           name="confirmPassword"
@@ -190,7 +298,16 @@ const Register = () => {
           required
         />
         
-        <FormButton type="submit">Kayıt Ol</FormButton>
+        <RecaptchaContainer>
+          <ReCAPTCHA
+            sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" // Test site key, gerçek uygulamada kendi anahtarınızı kullanın
+            onChange={handleRecaptchaChange}
+          />
+        </RecaptchaContainer>
+        
+        <FormButton type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Kaydediliyor...' : 'Kayıt Ol'}
+        </FormButton>
       </RegisterForm>
       
       <BackLink to="/login">Zaten hesabınız var mı? Giriş yapın</BackLink>

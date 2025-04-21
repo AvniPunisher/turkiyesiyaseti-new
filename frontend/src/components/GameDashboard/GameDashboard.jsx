@@ -429,7 +429,10 @@ const GameDashboard = () => {
   
   // Ana menüye dön
   const returnToMainMenu = () => {
-    navigate('/');
+    // Eğer oyun değişiklikleri kaydedilmemişse uyarı göster
+    if (window.confirm('Ana menüye dönmek istediğinizden emin misiniz? Kaydedilmemiş ilerlemeniz kaybolabilir.')) {
+      navigate('/');
+    }
   };
   
   // Oyundan çık
@@ -601,6 +604,12 @@ const GameDashboard = () => {
               onClick={() => setSelectedMenu('character')}
             >
               Karakter Bilgileri
+            </MenuItem>
+            <MenuItem 
+              className={selectedMenu === 'save' ? 'active' : ''}
+              onClick={() => setShowSaveModal(true)}
+            >
+              Oyunu Kaydet
             </MenuItem>
             <MenuItem 
               className={selectedMenu === 'settings' ? 'active' : ''}
@@ -871,6 +880,7 @@ function getMenuTitle(menu) {
     case 'media': return 'Medya İlişkileri';
     case 'map': return 'Türkiye Haritası';
     case 'character': return 'Karakter Bilgileri';
+    case 'save': return 'Oyunu Kaydet';
     case 'settings': return 'Oyun Ayarları';
     default: return 'Ana Sayfa';
   }

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/db');
 const auth = require('../middleware/auth');
+const gameService = require('../services/gameService');
 
 // Yeni karakter oluştur
 router.post('/create-character', auth, async (req, res) => {
@@ -368,66 +369,29 @@ router.post('/save-game', auth, async (req, res) => {
     
     const partyId = parties.length > 0 ? parties[0].id : null;
     
-    const gameDataJson = JSON.stringify(gameData);
+    // GameService'i kullanarak kaydet
+    const saveData = {
+      userId,
+      characterId,
+      partyId,
+      saveName: saveName || `Kayıt ${saveSlot}`,
+      saveSlot,
+      gameData,
+      gameDate: gameData.gameDate || new Date().toISOString(),
+      gameVersion: gameData.gameVersion || '1.0.0',
+      isAutoSave: false
+    };
     
-    // Belirtilen slot için mevcut kayıt var mı kontrol et
-    const [existingSaves] = await pool.execute(
-      'SELECT * FROM game_saves WHERE user_id = ? AND save_slot = ? AND is_auto_save = FALSE',
-      [userId, saveSlot]
-    );
+    const saveId = await gameService.saveGame(saveData);
     
-    if (existingSaves.length > 0) {
-      // Mevcut kaydı güncelle
-      await pool.execute(
-        `UPDATE game_saves SET 
-         save_name = ?, game_data = ?, game_date = ?, game_version = ?, party_id = ?,
-         updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = ? AND save_slot = ? AND is_auto_save = FALSE`,
-        [
-          saveName || `Kayıt ${saveSlot}`,
-          gameDataJson,
-          gameData.gameDate || new Date().toISOString(),
-          gameData.gameVersion || '1.0.0',
-          partyId,
-          userId,
-          saveSlot
-        ]
-      );
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Oyun başarıyla güncellendi',
-        saveId: existingSaves[0].id
-      });
-      
-    } else {
-      // Yeni kayıt oluştur
-      const [result] = await pool.execute(
-        `INSERT INTO game_saves 
-         (user_id, character_id, party_id, save_name, save_slot, game_data, game_date, game_version, is_auto_save) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)`,
-        [
-          userId,
-          characterId,
-          partyId,
-          saveName || `Kayıt ${saveSlot}`,
-          saveSlot,
-          gameDataJson,
-          gameData.gameDate || new Date().toISOString(),
-          gameData.gameVersion || '1.0.0'
-        ]
-      );
-      
-      return res.status(201).json({
-        success: true,
-        message: 'Oyun başarıyla kaydedildi',
-        saveId: result.insertId
-      });
-    }
-    
+    return res.status(200).json({
+      success: true,
+      message: 'Oyun başarıyla kaydedildi',
+      saveId
+    });
   } catch (error) {
     console.error('Oyun kaydetme hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
+    res.status(500).json({ success: false, message: 'Sunucu hatası: ' + error.message });
   }
 });
 
@@ -490,76 +454,23 @@ router.get('/load-game/:saveId', auth, async (req, res) => {
     const userId = req.user.userId;
     const saveId = req.params.saveId;
     
-    // Önce kayıt bilgilerini kontrol et
-    const [savedGameCheck] = await pool.execute(
-      `SELECT * FROM game_saves WHERE id = ? AND user_id = ? AND is_active = TRUE`,
-      [saveId, userId]
-    );
-    
-    if (savedGameCheck.length === 0) {
-      return res.status(404).json({ success: false, message: 'Kayıtlı oyun bulunamadı' });
-    }
-    
-    const savedGameInfo = savedGameCheck[0];
-    
-    // Karakter bilgilerini ayrı al
-    const [characters] = await pool.execute(
-      `SELECT * FROM game_characters WHERE id = ?`,
-      [savedGameInfo.character_id]
-    );
-    
-    if (characters.length === 0) {
-      return res.status(404).json({ success: false, message: 'Karakter bilgisi bulunamadı' });
-    }
-    
-    const character = prepareCharacterData(characters[0]);
-    
-    // Parti bilgilerini ayrı al (eğer varsa)
-    let party = null;
-    if (savedGameInfo.party_id) {
-      const [parties] = await pool.execute(
-        `SELECT * FROM game_parties WHERE id = ?`,
-        [savedGameInfo.party_id]
-      );
-      
-      if (parties.length > 0) {
-        party = preparePartyData(parties[0]);
-      }
-    }
-    
-    // Oyun verisini hazırla
-    let gameData = {};
+    // GameService kullanarak yükle
     try {
-      gameData = JSON.parse(savedGameInfo.game_data);
-    } catch (jsonError) {
-      console.error('Oyun verisi JSON parse hatası:', jsonError);
-      gameData = { error: 'Oyun verisi çözümlenemedi' };
+      const saveData = await gameService.loadGame(saveId, userId);
+      
+      return res.status(200).json({
+        success: true,
+        saveData
+      });
+    } catch (error) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Kayıtlı oyun yüklenirken hata: ' + error.message 
+      });
     }
-    
-    return res.status(200).json({
-      success: true,
-      saveData: {
-        saveId: savedGameInfo.id,
-        saveName: savedGameInfo.save_name,
-        saveSlot: savedGameInfo.save_slot,
-        isAutoSave: savedGameInfo.is_auto_save == 1,
-        character,
-        party,
-        gameData,
-        gameDate: savedGameInfo.game_date,
-        gameVersion: savedGameInfo.game_version,
-        createdAt: savedGameInfo.created_at,
-        updatedAt: savedGameInfo.updated_at
-      }
-    });
-    
   } catch (error) {
     console.error('Oyun yükleme hatası:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Sunucu hatası: ' + error.message,
-      error: error.stack
-    });
+    res.status(500).json({ success: false, message: 'Sunucu hatası: ' + error.message });
   }
 });
 
@@ -619,44 +530,56 @@ router.post('/update-auto-save', auth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Oyun verisi eksik' });
     }
     
-    // Kullanıcının otomatik kaydını bul
-    const [autoSaves] = await pool.execute(
-      'SELECT * FROM game_saves WHERE user_id = ? AND is_auto_save = TRUE',
+    // Kullanıcının karakterini kontrol et
+    const [characters] = await pool.execute(
+      'SELECT * FROM game_characters WHERE user_id = ?',
       [userId]
     );
     
-    if (autoSaves.length === 0) {
-      return res.status(404).json({ success: false, message: 'Otomatik kayıt bulunamadı' });
+    if (characters.length === 0) {
+      return res.status(404).json({ success: false, message: 'Karakter bulunamadı' });
     }
     
-    const autoSave = autoSaves[0];
-    const currentGameData = JSON.parse(autoSave.game_data);
+    const characterId = characters[0].id;
     
-    // Oyun verisini güncelle
+    // Kullanıcının partisini kontrol et
+    const [parties] = await pool.execute(
+      'SELECT * FROM game_parties WHERE user_id = ? AND character_id = ?',
+      [userId, characterId]
+    );
+    
+    const partyId = parties.length > 0 ? parties[0].id : null;
+    
+    // Oyun verisi güncellemesi
     const updatedGameData = {
-      ...currentGameData,
       ...gameData,
       lastSave: new Date().toISOString()
     };
     
-    // Otomatik kaydı güncelle
-    await pool.execute(
-      `UPDATE game_saves SET 
-       game_data = ?, 
-       updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`,
-      [JSON.stringify(updatedGameData), autoSave.id]
-    );
+    // Otomatik kayıt verisi
+    const saveData = {
+      userId,
+      characterId,
+      partyId,
+      saveName: 'Otomatik Kayıt',
+      saveSlot: 1, // Otomatik kayıtlar için slot 1'i kullanıyoruz
+      gameData: updatedGameData,
+      gameDate: updatedGameData.gameDate || new Date().toISOString(),
+      gameVersion: updatedGameData.gameVersion || '1.0.0',
+      isAutoSave: true
+    };
+    
+    // GameService'i kullanarak kaydet
+    const saveId = await gameService.saveGame(saveData);
     
     return res.status(200).json({
       success: true,
-      message: 'Otomatik kayıt güncellendi',
-      saveId: autoSave.id
+      message: 'Otomatik kayıt başarıyla güncellendi',
+      saveId
     });
-    
   } catch (error) {
     console.error('Otomatik kayıt güncelleme hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
+    res.status(500).json({ success: false, message: 'Sunucu hatası: ' + error.message });
   }
 });
 

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
-import ReCAPTCHA from "react-google-recaptcha";
+// ReCAPTCHA import'unu kaldırdım
 
 const RegisterContainer = styled.div`
   display: flex;
@@ -107,11 +107,7 @@ const PasswordCriteriaItem = styled.span`
   margin-bottom: 0.2rem;
 `;
 
-const RecaptchaContainer = styled.div`
-  margin: 1rem 0;
-  display: flex;
-  justify-content: center;
-`;
+// ReCAPTCHA container'ı kaldırdım
 
 const Register = () => {
   const navigate = useNavigate();
@@ -120,7 +116,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    recaptchaValue: null
+    // recaptchaValue kaldırıldı
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -177,12 +173,7 @@ const Register = () => {
     }
   };
   
-  const handleRecaptchaChange = (value) => {
-    setFormData({
-      ...formData,
-      recaptchaValue: value
-    });
-  };
+  // handleRecaptchaChange fonksiyonunu kaldırdım
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -198,10 +189,7 @@ const Register = () => {
       return;
     }
 
-    if (!formData.recaptchaValue) {
-      setError('Lütfen robot olmadığınızı doğrulayın');
-      return;
-    }
+    // Recaptcha kontrolünü kaldırdım
     
     setIsSubmitting(true);
     
@@ -212,18 +200,17 @@ const Register = () => {
         // Güvenlik için şifreyi loglamıyoruz
       });
       
-      // API çağrısı
+      // API çağrısı (recaptchaValue kaldırıldı)
       const response = await axios.post('https://api.turkiyesiyaseti.net/api/auth/register', {
         username: formData.username,
         email: formData.email,
-        password: formData.password,
-        recaptchaValue: formData.recaptchaValue
+        password: formData.password
       });
       
       console.log("Kayıt başarılı:", response.data);
       
-      // Başarılı kayıt sonrası giriş sayfasına yönlendir
-      navigate('/login', { state: { message: 'Kayıt işlemi başarılı. Lütfen e-posta adresinizi doğrulayıp giriş yapın.' } });
+      // Email doğrulaması kaldırıldığından doğrudan giriş sayfasına yönlendirelim ve mesajı değiştirelim
+      navigate('/login', { state: { message: 'Kayıt işlemi başarılı. Lütfen giriş yapın.' } });
     } catch (err) {
       console.error("Kayıt hatası:", err);
       
@@ -298,12 +285,7 @@ const Register = () => {
           required
         />
         
-        <RecaptchaContainer>
-          <ReCAPTCHA
-            sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" // Test site key, gerçek uygulamada kendi anahtarınızı kullanın
-            onChange={handleRecaptchaChange}
-          />
-        </RecaptchaContainer>
+        {/* ReCAPTCHA bileşenini kaldırdım */}
         
         <FormButton type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Kaydediliyor...' : 'Kayıt Ol'}

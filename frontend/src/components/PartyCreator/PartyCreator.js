@@ -48,6 +48,9 @@ const PartyCreator = () => {
     founderId: null,
     founderName: ''
   });
+  
+  // Karakter verisini de tutalım
+  const [character, setCharacter] = useState(null);
 
   // Karakter bilgisini getir
   useEffect(() => {
@@ -67,48 +70,49 @@ const PartyCreator = () => {
           console.log("API yanıtı:", response);
           
           if (response.success && response.data.character) {
-            const character = response.data.character;
+            const characterData = response.data.character;
+            setCharacter(characterData);
             setParty(prev => ({
               ...prev,
-              founderId: character.id,
-              founderName: character.fullName,
-              ideology: { ...character.ideology } // Karakter ideolojisini başlangıç değeri olarak al
+              founderId: characterData.id,
+              founderName: characterData.fullName,
+              ideology: { ...characterData.ideology } // Karakter ideolojisini başlangıç değeri olarak al
             }));
           } else {
-            // API başarısızsa alternatif olarak game route'unu dene
-            const gameResponse = await apiHelper.get('/api/game/get-character');
-            
-            if (gameResponse.success && gameResponse.data.character) {
-              const character = gameResponse.data.character;
+            // Son çare olarak localStorage'dan veri almayı dene
+            const storedCharacter = localStorage.getItem('characterData');
+            if (storedCharacter) {
+              const characterData = JSON.parse(storedCharacter);
+              setCharacter(characterData);
               setParty(prev => ({
                 ...prev,
-                founderId: character.id,
-                founderName: character.fullName,
-                ideology: { ...character.ideology }
+                founderId: characterData.id || 1,
+                founderName: characterData.fullName || 'Karakter Adı',
+                ideology: characterData.ideology || prev.ideology
               }));
             } else {
-              // Son çare olarak localStorage'dan veri almayı dene
-              const characterData = localStorage.getItem('characterData');
-              if (characterData) {
-                const character = JSON.parse(characterData);
-                setParty(prev => ({
-                  ...prev,
-                  founderId: character.id || 1,
-                  founderName: character.fullName || 'Karakter Adı',
-                  ideology: character.ideology || prev.ideology
-                }));
-              } else {
-                console.log('Karakter bilgisi alınamadı ama işleme devam ediliyor');
-                alert('Karakter bilgisi alınamadı. Lütfen önce karakter oluşturun.');
-                navigate('/character-creator');
-              }
+              console.log('Karakter bilgisi alınamadı.');
+              alert('Karakter bilgisi alınamadı. Lütfen önce karakter oluşturun.');
+              navigate('/character-creator');
             }
           }
         } catch (apiError) {
           console.error("API'den karakter bilgisi alınamadı:", apiError);
-          // Daha basit geri dönüş
-          alert('Karakter bilgilerine erişilemedi. Lütfen önce karakter oluşturun.');
-          navigate('/character-creator');
+          // Son çare olarak localStorage'dan veri almayı dene
+          const storedCharacter = localStorage.getItem('characterData');
+          if (storedCharacter) {
+            const characterData = JSON.parse(storedCharacter);
+            setCharacter(characterData);
+            setParty(prev => ({
+              ...prev,
+              founderId: characterData.id || 1,
+              founderName: characterData.fullName || 'Karakter Adı',
+              ideology: characterData.ideology || prev.ideology
+            }));
+          } else {
+            alert('Karakter bilgilerine erişilemedi. Lütfen önce karakter oluşturun.');
+            navigate('/character-creator');
+          }
         }
       } catch (error) {
         console.error("Karakter bilgisi getirme hatası:", error);
@@ -230,49 +234,90 @@ const PartyCreator = () => {
         return;
       }
       
-      // Karakter verilerini localStorage'a da kaydet
-      // böylece API hatası olsa bile parti oluşturmada kullanabiliriz
+      // Parti verilerini localStorage'a kaydet (API başarısız olursa yedek olarak)
       try {
         localStorage.setItem('partyData', JSON.stringify(party));
-      } catch (e) {
-        console.error("Parti verileri localStorage'a kaydedilemedi:", e);
+      } catch (storageError) {
+        console.warn("Parti verileri localStorage'a kaydedilemedi:", storageError);
       }
       
       // Parti verisini API'ye gönder
-      // Doğru endpoint'i kullan - backend'in beklediği path'i kullan
-      const response = await apiHelper.post('/api/party/create-party', { party });
+      // Doğru endpoint: /api/game/create-party
+      const response = await apiHelper.post('/api/game/create-party', { party });
       
       console.log("API yanıtı:", response);
 
       if (response.success) {
         alert('Parti başarıyla oluşturuldu!');
-        // Doğrudan parti oluşturma sayfasına yönlendir
-        navigate('/single-player');
+        
+        // GameDashboard'a geçiş yap (parti ve karakter verilerini aktar)
+        navigate('/game-dashboard', { 
+          state: { 
+            party: party,
+            character: character 
+          } 
+        });
       } else {
         // API yanıt hatası
         if (response.authError) {
           alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
           navigate('/login', { state: { returnUrl: '/party-creator' } });
         } else if (response.networkError) {
-          alert("Sunucuya bağlantı kurulamadı. Lütfen internet bağlantınızı kontrol edin.");
+          alert("Sunucuya bağlantı kurulamadı. API erişimi olmadan devam ediliyor.");
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
+          navigate('/game-dashboard', { 
+            state: { 
+              party: party,
+              character: character,
+              offlineMode: true 
+            } 
+          });
         } else if (response.notFoundError) {
-          alert(`API endpoint bulunamadı (404 hatası).\n\nÖNERİLEN ÇÖZÜMLER:\n1. Backend sunucunuzun çalıştığından emin olun\n2. API URL'sinin doğru olduğunu kontrol edin\n3. Backend geliştiricileriyle iletişime geçip "/api/party/create-party" endpoint'inin mevcut olduğundan emin olun`);
+          alert("API endpoint bulunamadı (404 hatası). API erişimi olmadan devam ediliyor.");
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
+          navigate('/game-dashboard', { 
+            state: { 
+              party: party,
+              character: character,
+              offlineMode: true 
+            } 
+          });
         } else if (response.status === 500) {
           console.error("Sunucu hatası detayları:", response.data);
-          alert("Sunucu hatası: API'de bir problem oluştu. Lütfen daha sonra tekrar deneyin.");
+          alert("Sunucu hatası: API'de bir problem oluştu. API erişimi olmadan devam ediliyor.");
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
+          navigate('/game-dashboard', { 
+            state: { 
+              party: party,
+              character: character,
+              offlineMode: true 
+            } 
+          });
         } else {
-          alert(`Parti oluşturulurken bir hata oluştu: ${response.message}`);
+          alert(`Parti oluşturulurken bir hata oluştu: ${response.message}. API erişimi olmadan devam ediliyor.`);
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
+          navigate('/game-dashboard', { 
+            state: { 
+              party: party,
+              character: character,
+              offlineMode: true 
+            } 
+          });
         }
         console.error("API yanıt hatası:", response.error);
       }
     } catch (error) {
       console.error("Beklenmeyen hata:", error);
-      alert(`Beklenmeyen bir hata oluştu: ${error.message}`);
+      alert(`Beklenmeyen bir hata oluştu: ${error.message}. API erişimi olmadan devam ediliyor.`);
       
-      // Yine de oyun ekranına yönlendirmeyi dene (hata olsa bile)
-      setTimeout(() => {
-        navigate('/single-player');
-      }, 2000);
+      // Hata olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
+      navigate('/game-dashboard', { 
+        state: { 
+          party: party,
+          character: character,
+          offlineMode: true 
+        } 
+      });
     } finally {
       setLoading(false);
     }
@@ -288,11 +333,13 @@ const PartyCreator = () => {
     const tags = [];
     
     for (const axis in ideologyAxes) {
-      const position = getPositionName(axis, party.ideology[axis]);
-      tags.push({
-        axis: ideologyAxes[axis].name,
-        position
-      });
+      if (party.ideology[axis] !== undefined) {
+        const position = getPositionName(axis, party.ideology[axis]);
+        tags.push({
+          axis: ideologyAxes[axis].name,
+          position
+        });
+      }
     }
     
     return tags;
@@ -454,7 +501,7 @@ const PartyCreator = () => {
                   <div key={axis} className="ideology-axis">
                     <div className="ideology-header">
                       <label>{data.name} Ekseni</label>
-                      <span className="ideology-position">{getPositionName(axis, party.ideology[axis])}</span>
+                      <span className="ideology-position">{getPositionName(axis, party.ideology[axis] || 50)}</span>
                     </div>
                     <div className="ideology-labels">
                       {data.positions.map((position, idx) => (
@@ -467,7 +514,7 @@ const PartyCreator = () => {
                       max="100" 
                       step="25"
                       className="ideology-slider" 
-                      value={party.ideology[axis]}
+                      value={party.ideology[axis] || 50}
                       onChange={(e) => handleIdeologyChange(axis, parseInt(e.target.value))}
                     />
                   </div>

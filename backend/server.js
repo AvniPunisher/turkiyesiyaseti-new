@@ -38,6 +38,8 @@ testConnection()
 // Rotalar
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/game', require('./routes/game'));
+app.use('/api/character', require('./routes/character')); // Eksik
+app.use('/api/party', require('./routes/party')); // Eksik
 
 // 404 hata yakalama
 app.use((req, res) => {

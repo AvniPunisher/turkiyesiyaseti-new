@@ -63,6 +63,11 @@ const FormButton = styled.button`
   &:hover {
     background: rgba(0, 150, 255, 0.7);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const BackLink = styled(Link)`
@@ -94,6 +99,21 @@ const SuccessMessage = styled.p`
   border: 1px solid rgba(0, 200, 100, 0.5);
 `;
 
+const VerificationLink = styled.button`
+  background: none;
+  border: none;
+  color: rgba(0, 200, 255, 0.8);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: 'Orbitron', sans-serif;
+  margin-bottom: 1rem;
+  text-align: center;
+  
+  &:hover {
+    color: rgba(0, 200, 255, 1);
+  }
+`;
+
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,6 +123,9 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
   
   // URL'den returnUrl'i al (eğer varsa)
   const returnUrl = location.state?.returnUrl || '/';
@@ -121,9 +144,29 @@ const Login = () => {
     });
   };
   
+  const resendVerification = async () => {
+    try {
+      setIsSubmitting(true);
+      const response = await axios.post('https://api.turkiyesiyaseti.net/api/auth/resend-verification', { 
+        email: verificationEmail 
+      });
+      
+      if (response.data.success) {
+        setSuccessMessage('Doğrulama e-postası yeniden gönderildi. Lütfen gelen kutunuzu kontrol edin.');
+        setNeedsVerification(false);
+      }
+    } catch (error) {
+      console.error("Doğrulama e-postası gönderme hatası:", error);
+      setError('Doğrulama e-postası gönderilirken bir hata oluştu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
     
     try {
       console.log("Login isteği gönderiliyor...", formData);
@@ -155,6 +198,12 @@ const Login = () => {
       if (err.code === 'ERR_NETWORK') {
         setError('Sunucuya bağlanılamadı. Backend sunucunun çalıştığından emin olun.');
       }
+      // E-posta doğrulama hatası
+      else if (err.response?.data?.needsVerification) {
+        setNeedsVerification(true);
+        setVerificationEmail(formData.email);
+        setError('Lütfen önce e-posta adresinizi doğrulayın.');
+      }
       // Server'dan dönen spesifik hata
       else if (err.response && err.response.data) {
         setError(err.response.data.message || 'Sunucu hatası: ' + err.response.status);
@@ -164,6 +213,8 @@ const Login = () => {
       else {
         setError('Giriş yapılırken bir hata oluştu: ' + err.message);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -174,6 +225,12 @@ const Login = () => {
         
         {error && <ErrorMessage>{error}</ErrorMessage>}
         {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
+        
+        {needsVerification && (
+          <VerificationLink onClick={resendVerification} disabled={isSubmitting}>
+            {isSubmitting ? 'Gönderiliyor...' : 'Doğrulama e-postasını tekrar gönder'}
+          </VerificationLink>
+        )}
         
         <FormInput
           type="email"
@@ -193,7 +250,9 @@ const Login = () => {
           required
         />
         
-        <FormButton type="submit">Giriş Yap</FormButton>
+        <FormButton type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+        </FormButton>
       </LoginForm>
       
       <BackLink to="/register">Hesabınız yok mu? Kayıt olun</BackLink>

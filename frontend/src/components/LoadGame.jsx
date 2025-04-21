@@ -102,8 +102,6 @@ const ActionButtons = styled.div`
   display: flex;
   justify-content: space-between;
   margin-top: 0.5rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
 `;
 
 const ActionButton = styled.button`
@@ -132,14 +130,6 @@ const DeleteButton = styled(ActionButton)`
   
   &:hover {
     background: rgba(255, 80, 80, 0.7);
-  }
-`;
-
-const ExportButton = styled(ActionButton)`
-  background: rgba(60, 180, 80, 0.5);
-  
-  &:hover {
-    background: rgba(80, 200, 100, 0.7);
   }
 `;
 
@@ -182,67 +172,17 @@ const Controls = styled.div`
   border-top: 1px solid rgba(0, 200, 255, 0.3);
 `;
 
-const FileInputWrapper = styled.div`
-  position: relative;
-  display: inline-block;
-`;
-
-const HiddenFileInput = styled.input`
-  opacity: 0;
-  position: absolute;
-  pointer-events: none;
-`;
-
-const ImportButton = styled(Button)`
-  background: rgba(100, 100, 200, 0.5);
-  
-  &:hover {
-    background: rgba(120, 120, 255, 0.7);
-  }
-`;
-
-const ImportContainer = styled.div`
-  background: rgba(0, 30, 60, 0.7);
-  border: 1px solid rgba(0, 200, 255, 0.3);
-  border-radius: 8px;
+const ErrorText = styled.div`
+  font-size: 1.2rem;
+  color: #ff5555;
+  text-align: center;
+  margin: 1rem 0;
+  background: rgba(255, 0, 0, 0.1);
   padding: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const LoadingOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 10, 20, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  
-  & > div {
-    background: rgba(0, 30, 60, 0.9);
-    padding: 2rem;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 200, 255, 0.3);
-    text-align: center;
-  }
-`;
-
-const LoadingSpinner = styled.div`
-  border: 4px solid rgba(0, 100, 200, 0.1);
-  border-left: 4px solid rgba(0, 200, 255, 0.8);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem auto;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+  border-radius: 5px;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  max-width: 80%;
+  align-self: center;
 `;
 
 // Kontrastlı metin rengi seçimi için yardımcı fonksiyon
@@ -268,9 +208,6 @@ const LoadGame = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [error, setError] = useState(null);
   const [deletingGame, setDeletingGame] = useState(null);
-  const [processingAction, setProcessingAction] = useState(null);
-  const [showImportForm, setShowImportForm] = useState(false);
-  const [importedFile, setImportedFile] = useState(null);
   
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -293,7 +230,7 @@ const LoadGame = () => {
         setSavedGames(response.data.savedGames || []);
       } else {
         console.error('Kayıtlı oyunları getirme başarısız:', response.message);
-        setError('Kayıtlı oyunlar yüklenirken bir hata oluştu');
+        setError('Kayıtlı oyunlar yüklenirken bir hata oluştu: ' + response.message);
       }
     } catch (error) {
       console.error('Kayıtlı oyunları yükleme hatası:', error);
@@ -303,9 +240,54 @@ const LoadGame = () => {
     }
   };
   
-  const handleLoadGame = (game) => {
-    // Oyunu yükle ve ilgili bileşene yönlendir
-    navigate('/single-player', { state: { loadedGame: game } });
+  const handleLoadGame = async (game) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Oyun verilerini yükle
+      const response = await apiHelper.get(`/api/game/load-game/${game.id}`);
+      
+      if (response.success) {
+        const saveData = response.data.saveData;
+        
+        // Karakter verilerini kontrol et
+        if (!saveData.character) {
+          setError(`Kayıt ID: ${game.id} - Karakter verisi eksik`);
+          setLoading(false);
+          return;
+        }
+        
+        // Verileri localStorage'a da kaydet
+        localStorage.setItem('characterData', JSON.stringify(saveData.character));
+        if (saveData.party) {
+          localStorage.setItem('partyData', JSON.stringify(saveData.party));
+        }
+        if (saveData.gameData) {
+          localStorage.setItem('gameData', JSON.stringify(saveData.gameData));
+        }
+        
+        console.log("Oyun başarıyla yüklendi, GameDashboard'a yönlendiriliyor");
+        
+        // GameDashboard'a yönlendir
+        navigate('/game-dashboard', { 
+          state: { 
+            character: saveData.character,
+            party: saveData.party,
+            gameData: saveData.gameData,
+            saveId: game.id 
+          }
+        });
+      } else {
+        console.error("Oyun yükleme başarısız:", response.message);
+        setError("Oyun yüklenirken bir hata oluştu: " + response.message);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error(`Oyun yükleme hatası (ID: ${game.id}):`, error);
+      setError(`Oyun yüklenirken bir hata oluştu: ${error.message}`);
+      setLoading(false);
+    }
   };
   
   const handleDeleteGame = async (gameId, event) => {
@@ -322,106 +304,13 @@ const LoadGame = () => {
         setSavedGames(prev => prev.filter(game => game.id !== gameId));
       } else {
         console.error('Oyun silme başarısız:', response.message);
-        setError('Oyun silinirken bir hata oluştu');
+        setError('Oyun silinirken bir hata oluştu: ' + response.message);
       }
     } catch (error) {
       console.error('Oyun silme hatası:', error);
       setError('Sunucu bağlantı hatası. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setDeletingGame(null);
-    }
-  };
-  
-  // Save indirme işlevi
-  const handleExportSave = async (gameId, event) => {
-    // Kartın tıklanmasını engelle
-    event.stopPropagation();
-    
-    try {
-      setProcessingAction('export-' + gameId);
-      
-      const response = await apiHelper.get(`/api/game/export-save/${gameId}`);
-      
-      if (response.success) {
-        // JSON'ı dosyaya dönüştür
-        const saveData = response.data.saveData;
-        const fileName = saveData.saveName || 'game-save';
-        const blob = new Blob([JSON.stringify(saveData, null, 2)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        
-        // Dosyayı indirme
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName.replace(/\s+/g, '-').toLowerCase()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        
-        // Temizlik
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 0);
-      } else {
-        console.error('Oyun dışa aktarma hatası:', response.message);
-        setError('Oyun kaydı dışa aktarılırken bir hata oluştu');
-      }
-    } catch (error) {
-      console.error('Oyun dışa aktarma hatası:', error);
-      setError('Kayıt dışa aktarılırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
-    } finally {
-      setProcessingAction(null);
-    }
-  };
-  
-  // Dosya seçimi işleyicisi
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImportedFile(file);
-    }
-  };
-  
-  // Save yükleme işlevi
-  const handleImportSave = async () => {
-    if (!importedFile) {
-      setError('Lütfen bir kayıt dosyası seçin.');
-      return;
-    }
-    
-    try {
-      setProcessingAction('import');
-      
-      const reader = new FileReader();
-      
-      reader.onload = async (e) => {
-        try {
-          // JSON'ı ayrıştır
-          const saveData = JSON.parse(e.target.result);
-          
-          // API'ye gönder
-          const response = await apiHelper.post('/api/game/import-save', { saveData });
-          
-          if (response.success) {
-            // Başarılı olduğunda kayıtları yenile
-            await fetchSavedGames();
-            setShowImportForm(false);
-            setImportedFile(null);
-            alert('Oyun kaydı başarıyla içe aktarıldı!');
-          } else {
-            setError(`Oyun kaydı içe aktarılamadı: ${response.message}`);
-          }
-        } catch (parseError) {
-          console.error('JSON ayrıştırma hatası:', parseError);
-          setError('Geçersiz kayıt dosyası. Lütfen geçerli bir oyun kaydı seçin.');
-        }
-      };
-      
-      reader.readAsText(importedFile);
-    } catch (error) {
-      console.error('Oyun içe aktarma hatası:', error);
-      setError('Kayıt içe aktarılırken bir hata oluştu.');
-    } finally {
-      setProcessingAction(null);
     }
   };
   
@@ -446,13 +335,6 @@ const LoadGame = () => {
     }
   };
   
-  // İçe aktarma formunu aç/kapat
-  const toggleImportForm = () => {
-    setShowImportForm(!showImportForm);
-    setImportedFile(null);
-    setError(null);
-  };
-  
   return (
     <LoadGameContainer>
       <Header>
@@ -471,141 +353,72 @@ const LoadGame = () => {
           </NoGames>
         ) : error ? (
           <NoGames>
-            <NoGamesText>{error}</NoGamesText>
+            <ErrorText>{error}</ErrorText>
             <Button onClick={fetchSavedGames}>Tekrar Dene</Button>
+          </NoGames>
+        ) : savedGames.length === 0 ? (
+          <NoGames>
+            <NoGamesText>Henüz kaydedilmiş oyununuz bulunmuyor.</NoGamesText>
+            <Button onClick={() => navigate('/single-player')}>Yeni Oyun Başlat</Button>
           </NoGames>
         ) : (
           <>
-            {/* İçe Aktarma Formu */}
-            {showImportForm && (
-              <ImportContainer>
-                <h3 style={{ color: 'rgba(0, 200, 255, 0.8)', margin: '0 0 1rem 0' }}>Oyun Kaydı Yükle</h3>
-                
-                <div style={{ marginBottom: '1rem' }}>
-                  <p style={{ marginBottom: '0.5rem' }}>JSON formatında bir oyun kaydı seçin:</p>
+            <GamesList>
+              {savedGames.map((game) => (
+                <GameCard key={game.id} onClick={() => handleLoadGame(game)}>
+                  {game.isAutoSave && <AutoSaveBadge>Otomatik Kayıt</AutoSaveBadge>}
                   
-                  <FileInputWrapper>
-                    <Button 
-                      onClick={() => document.getElementById('fileInput').click()}
-                      style={{ marginRight: '0.5rem' }}
-                    >
-                      Dosya Seç
-                    </Button>
-                    <HiddenFileInput 
-                      type="file" 
-                      id="fileInput" 
-                      accept=".json" 
-                      onChange={handleFileSelect}
-                    />
-                    <span>{importedFile ? importedFile.name : 'Dosya seçilmedi'}</span>
-                  </FileInputWrapper>
-                </div>
-                
-                {error && <p style={{ color: '#ff5555', marginBottom: '1rem' }}>{error}</p>}
-                
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <Button 
-                    onClick={handleImportSave}
-                    disabled={!importedFile || processingAction === 'import'}
-                  >
-                    {processingAction === 'import' ? 'İçe Aktarılıyor...' : 'İçe Aktar'}
-                  </Button>
-                  <Button onClick={toggleImportForm}>İptal</Button>
-                </div>
-              </ImportContainer>
-            )}
-            
-            {/* Aksiyon Butonları */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div>
-                {!showImportForm && (
-                  <ImportButton onClick={toggleImportForm}>
-                    Oyun Kaydı Yükle
-                  </ImportButton>
-                )}
-              </div>
-              <div>
-                <Button onClick={fetchSavedGames}>Listeyi Yenile</Button>
-              </div>
-            </div>
-            
-            {savedGames.length === 0 ? (
-              <NoGames>
-                <NoGamesText>Henüz kaydedilmiş oyununuz bulunmuyor.</NoGamesText>
-                <Button onClick={() => navigate('/single-player')}>Yeni Oyun Başlat</Button>
-              </NoGames>
-            ) : (
-              <GamesList>
-                {savedGames.map((game) => (
-                  <GameCard key={game.id} onClick={() => handleLoadGame(game)}>
-                    {game.isAutoSave && <AutoSaveBadge>Otomatik Kayıt</AutoSaveBadge>}
+                  <GameName>{game.saveName}</GameName>
+                  
+                  <div>
+                    <strong>Karakter:</strong> {game.characterName || 'Bilinmiyor'}
+                  </div>
+                  
+                  {game.partyName && (
+                    <GameParty>
+                      <strong>Parti:</strong>&nbsp;
+                      <PartyBadge color={game.partyColor}>
+                        {game.partyShortName}
+                      </PartyBadge>
+                      {game.partyName}
+                    </GameParty>
+                  )}
+                  
+                  <GameDate>
+                    <strong>Son Güncelleme:</strong> {formatDate(game.updatedAt)}
+                  </GameDate>
+                  
+                  <ActionButtons>
+                    <ActionButton onClick={(e) => {
+                      e.stopPropagation();
+                      handleLoadGame(game);
+                    }}>
+                      Yükle
+                    </ActionButton>
                     
-                    <GameName>{game.saveName}</GameName>
-                    
-                    <div>
-                      <strong>Karakter:</strong> {game.characterName || 'Bilinmiyor'}
-                    </div>
-                    
-                    {game.partyName && (
-                      <GameParty>
-                        <strong>Parti:</strong>&nbsp;
-                        <PartyBadge color={game.partyColor}>
-                          {game.partyShortName}
-                        </PartyBadge>
-                        {game.partyName}
-                      </GameParty>
-                    )}
-                    
-                    <GameDate>
-                      <strong>Son Güncelleme:</strong> {formatDate(game.updatedAt)}
-                    </GameDate>
-                    
-                    <ActionButtons>
-                      <ActionButton onClick={(e) => {
-                        e.stopPropagation();
-                        handleLoadGame(game);
-                      }}>
-                        Yükle
-                      </ActionButton>
-                      
-                      <ExportButton 
-                        onClick={(e) => handleExportSave(game.id, e)}
-                        disabled={processingAction === `export-${game.id}`}
+                    {/* Otomatik kayıtlar silinemez */}
+                    {!game.isAutoSave && (
+                      <DeleteButton 
+                        onClick={(e) => handleDeleteGame(game.id, e)}
+                        disabled={deletingGame === game.id}
                       >
-                        {processingAction === `export-${game.id}` ? 'Dışa Aktarılıyor...' : 'Dışa Aktar'}
-                      </ExportButton>
-                      
-                      {/* Otomatik kayıtlar silinemez */}
-                      {!game.isAutoSave && (
-                        <DeleteButton 
-                          onClick={(e) => handleDeleteGame(game.id, e)}
-                          disabled={deletingGame === game.id}
-                        >
-                          {deletingGame === game.id ? 'Siliniyor...' : 'Sil'}
-                        </DeleteButton>
-                      )}
-                    </ActionButtons>
-                  </GameCard>
-                ))}
-              </GamesList>
-            )}
+                        {deletingGame === game.id ? 'Siliniyor...' : 'Sil'}
+                      </DeleteButton>
+                    )}
+                  </ActionButtons>
+                </GameCard>
+              ))}
+            </GamesList>
           </>
         )}
       </ContentArea>
       
       <Controls>
         <Button onClick={returnToMenu}>Ana Menü</Button>
+        {isLoggedIn && !loading && savedGames.length > 0 && (
+          <Button onClick={fetchSavedGames}>Yenile</Button>
+        )}
       </Controls>
-      
-      {/* Yükleme Overlay'i */}
-      {processingAction && (
-        <LoadingOverlay>
-          <div>
-            <LoadingSpinner />
-            <p>İşlem gerçekleştiriliyor...</p>
-          </div>
-        </LoadingOverlay>
-      )}
     </LoadGameContainer>
   );
 };

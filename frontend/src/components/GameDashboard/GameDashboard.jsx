@@ -170,13 +170,6 @@ const ActionButton = styled.button`
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
 `;
 
 const EventContainer = styled.div`
@@ -230,67 +223,203 @@ const TabButton = styled.button`
   }
 `;
 
+const ErrorText = styled.div`
+  font-size: 1.2rem;
+  color: #ff5555;
+  text-align: center;
+  margin: 1rem 0;
+  background: rgba(255, 0, 0, 0.1);
+  padding: 1rem;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+`;
+
+const LoadingSpinner = styled.div`
+  border: 4px solid rgba(0, 100, 200, 0.1);
+  border-left: 4px solid rgba(0, 200, 255, 0.8);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 2rem auto;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const ModalBackdrop = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+`;
+
+const ModalContent = styled.div`
+  background: rgba(0, 30, 60, 0.9);
+  border: 1px solid rgba(0, 200, 255, 0.5);
+  border-radius: 8px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+`;
+
+const ModalTitle = styled.h3`
+  color: rgba(0, 200, 255, 0.8);
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
 const GameDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
   const [charData, setCharData] = useState(null);
   const [partyData, setPartyData] = useState(null);
+  const [gameData, setGameData] = useState(null);
+  const [saveId, setSaveId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedMenu, setSelectedMenu] = useState('dashboard');
-  
-  // Save game functionality state
-  const [savingGame, setSavingGame] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(null);
-  const [saveError, setSaveError] = useState(null);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   
   // Karakter ve parti verilerini al
   useEffect(() => {
-    // Gerçek uygulamada bu veriler API'dan çekilecek
-    // Şimdilik localStorage'dan yükleyelim
+    loadGameData();
+  }, [location]);
+  
+  const loadGameData = () => {
+    setIsLoading(true);
+    setError(null);
+    
+    // 1. Location state'ten veri kontrolü
+    if (location.state?.character) {
+      console.log("State'ten karakter verileri alınıyor:", location.state.character);
+      setCharData(location.state.character);
+      
+      if (location.state.party) {
+        console.log("State'ten parti verileri alınıyor:", location.state.party);
+        setPartyData(location.state.party);
+      }
+      
+      if (location.state.gameData) {
+        console.log("State'ten oyun verileri alınıyor:", location.state.gameData);
+        setGameData(location.state.gameData);
+      }
+      
+      if (location.state.saveId) {
+        console.log("State'ten kayıt ID alınıyor:", location.state.saveId);
+        setSaveId(location.state.saveId);
+      }
+      
+      setIsLoading(false);
+      return;
+    }
+    
+    // 2. Eğer state'ten veri gelmezse localStorage'dan yüklemeyi dene
     try {
+      console.log("localStorage'dan veriler alınıyor...");
       const storedCharacter = localStorage.getItem('characterData');
       const storedParty = localStorage.getItem('partyData');
+      const storedGameData = localStorage.getItem('gameData');
       
       if (storedCharacter) {
         setCharData(JSON.parse(storedCharacter));
+      } else {
+        setError("Karakter verisi bulunamadı. Ana menüye dönün ve yeniden başlayın.");
       }
       
       if (storedParty) {
         setPartyData(JSON.parse(storedParty));
+      }
+      
+      if (storedGameData) {
+        setGameData(JSON.parse(storedGameData));
       } else {
-        // Test için demo parti verisi
-        setPartyData({
-          name: "Milli Kalkınma Partisi",
-          shortName: "MKP",
-          colorId: "#1976d2",
-          popularity: 12,
-          seats: 0,
-          ideology: {
-            economic: 3,
-            cultural: 4,
-            diplomatic: 4,
-            social: 3,
-            government: 4
-          }
+        // Varsayılan oyun verileri
+        setGameData({
+          score: 0,
+          level: 1,
+          gameState: 'active',
+          lastSave: new Date().toISOString()
         });
       }
-      
-      // Location state'inden veri kontrolü
-      if (location.state?.character) {
-        setCharData(location.state.character);
-      }
-      
-      if (location.state?.party) {
-        setPartyData(location.state.party);
-      }
-      
     } catch (error) {
       console.error("Veri yükleme hatası:", error);
+      setError("Oyun verileri yüklenirken bir hata oluştu.");
     } finally {
       setIsLoading(false);
     }
-  }, [location]);
+  };
+  
+  // Oyunu kaydetme
+  const saveGame = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Mevcut oyun ve karakter verilerini al
+      const currentGameData = gameData || {
+        score: 0,
+        level: 1,
+        gameState: 'active',
+        lastSave: new Date().toISOString()
+      };
+      
+      // Kayıt slot'u
+      const saveSlot = saveId ? 2 : 3; // Mevcut kayıt veya yeni kayıt
+      
+      // API'ye gönderilecek veri
+      const saveData = {
+        gameData: currentGameData,
+        saveName: `${charData?.fullName || 'Oyuncu'}'in Oyunu`,
+        saveSlot
+      };
+      
+      console.log("Oyun kaydediliyor:", saveData);
+      
+      // API'ye kayıt isteği gönder
+      const response = await apiHelper.post('/api/game/save-game', saveData);
+      
+      if (response.success) {
+        alert('Oyun başarıyla kaydedildi!');
+        
+        // Yeni kayıt ID'sini sakla
+        if (response.data?.saveId) {
+          setSaveId(response.data.saveId);
+        }
+        
+        // Kaydedilen oyun verilerini güncelle
+        localStorage.setItem('gameData', JSON.stringify(currentGameData));
+        
+        // Kayıt modalını kapat
+        setShowSaveModal(false);
+      } else {
+        throw new Error(response.message || "Kayıt sırasında bir hata oluştu");
+      }
+    } catch (error) {
+      console.error("Oyun kaydetme hatası:", error);
+      setError("Oyun kaydedilirken bir hata oluştu: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Karakter adından avatar oluştur
   const getInitials = (name) => {
@@ -305,141 +434,49 @@ const GameDashboard = () => {
   
   // Oyundan çık
   const exitGame = () => {
-    if (window.confirm("Oyundan çıkmak istediğinizden emin misiniz?")) {
-      navigate('/');
-    }
+    setShowExitModal(true);
   };
   
-  // Oyunu kaydetme işlevi
-  const handleSaveGame = async () => {
+  // Oyun turu ilerlet
+  const advanceTurn = () => {
+    // Burada oyun mekanikleri işleyecek
+    
+    // Örnek: Parti popülerliğini rastgele değiştir
+    if (partyData) {
+      const popularity = Math.max(5, Math.min(95, partyData.popularity + Math.floor(Math.random() * 11) - 5));
+      setPartyData({...partyData, popularity});
+      
+      // LocalStorage'da güncelle
+      localStorage.setItem('partyData', JSON.stringify({...partyData, popularity}));
+    }
+    
+    // Oyun veriyi güncelle
+    const updatedGameData = {
+      ...gameData,
+      score: (gameData?.score || 0) + Math.floor(Math.random() * 100),
+      level: (gameData?.level || 1) + (Math.random() > 0.8 ? 1 : 0),
+      lastUpdate: new Date().toISOString()
+    };
+    
+    setGameData(updatedGameData);
+    localStorage.setItem('gameData', JSON.stringify(updatedGameData));
+    
+    // Otomatik kayıt yap
+    updateAutoSave(updatedGameData);
+  };
+  
+  // Otomatik kayıt güncelleme
+  const updateAutoSave = async (updatedGameData) => {
     try {
-      setSavingGame(true);
-      setSaveSuccess(null);
-      setSaveError(null);
-      
-      // Oyun verilerini hazırla
-      const gameDataToSave = {
-        character: charData,
-        party: partyData,
-        gameState: 'saved',
-        gameDate: new Date().toISOString(),
-        gameVersion: '1.0.0',
-        // Diğer oyun ilerleme bilgileri burada eklenebilir
-        lastUpdated: new Date().toISOString()
-      };
-      
-      // Kayıt adı oluştur
-      const saveName = partyData ? 
-        `${charData?.fullName || 'Karakter'} - ${partyData.name}` :
-        `${charData?.fullName || 'Karakter'} - ${new Date().toLocaleDateString('tr-TR')}`;
-      
-      // Oyunu kaydet
-      const response = await apiHelper.post('/api/game/save-game', {
-        gameData: gameDataToSave,
-        saveName: saveName,
-        saveSlot: 2 // Manuel kayıtlar için 2 ve üstü slotları kullanıyoruz
+      const response = await apiHelper.post('/api/game/update-auto-save', {
+        gameData: updatedGameData
       });
       
-      if (response.success) {
-        setSaveSuccess('Oyun başarıyla kaydedildi!');
-        
-        // 3 saniye sonra mesajı kaldır
-        setTimeout(() => {
-          setSaveSuccess(null);
-        }, 3000);
-      } else {
-        setSaveError(`Kayıt hatası: ${response.message || 'Bilinmeyen hata'}`);
+      if (!response.success) {
+        console.error("Otomatik kayıt güncellenemedi:", response.message);
       }
     } catch (error) {
-      console.error('Oyun kaydetme hatası:', error);
-      setSaveError('Sunucu bağlantı hatası: ' + (error.message || 'Bilinmeyen hata'));
-      
-      // Çevrimdışı kayıt, localStorage'a yedekle
-      try {
-        const offlineSaveData = {
-          character: charData,
-          party: partyData,
-          gameState: 'saved',
-          gameDate: new Date().toISOString(),
-          savedOffline: true
-        };
-        
-        localStorage.setItem('offlineSaveData', JSON.stringify(offlineSaveData));
-        setSaveSuccess('Oyun çevrimdışı olarak kaydedildi. İnternet bağlantısı tekrar kurulduğunda senkronize edilecek.');
-        
-        // 3 saniye sonra mesajı kaldır
-        setTimeout(() => {
-          setSaveSuccess(null);
-        }, 3000);
-      } catch (localStorageError) {
-        console.error('Çevrimdışı kayıt hatası:', localStorageError);
-        setSaveError('Çevrimdışı kayıt yapılamadı: ' + (localStorageError.message || 'Bilinmeyen hata'));
-      }
-    } finally {
-      setSavingGame(false);
-    }
-  };
-
-  // Oyunu dışa aktarma işlevi
-  const handleExportGame = async () => {
-    try {
-      setSavingGame(true);
-      setSaveSuccess(null);
-      setSaveError(null);
-      
-      // Oyun verilerini hazırla
-      const gameDataToExport = {
-        saveInfo: {
-          saveName: partyData ? 
-            `${charData?.fullName || 'Karakter'} - ${partyData.name}` :
-            `${charData?.fullName || 'Karakter'} - ${new Date().toLocaleDateString('tr-TR')}`,
-          gameDate: new Date().toISOString(),
-          gameVersion: '1.0.0',
-          exportDate: new Date().toISOString(),
-          exportVersion: '1.0'
-        },
-        character: charData,
-        party: partyData,
-        gameData: {
-          // Oyun ilerleme bilgileri
-          gameState: 'exported',
-          lastUpdated: new Date().toISOString()
-        }
-      };
-      
-      // Dosya adı oluştur
-      const fileName = partyData ? 
-        `${charData?.fullName || 'Karakter'}-${partyData.shortName}`.toLowerCase().replace(/\s+/g, '-') :
-        `${charData?.fullName || 'Karakter'}-save`.toLowerCase().replace(/\s+/g, '-');
-      
-      // JSON'ı dosyaya dönüştür
-      const blob = new Blob([JSON.stringify(gameDataToExport, null, 2)], {type: 'application/json'});
-      const url = URL.createObjectURL(blob);
-      
-      // Dosyayı indirme
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.json`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Temizlik
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 0);
-      
-      setSaveSuccess('Oyun başarıyla dışa aktarıldı!');
-      
-      // 3 saniye sonra mesajı kaldır
-      setTimeout(() => {
-        setSaveSuccess(null);
-      }, 3000);
-    } catch (error) {
-      console.error('Oyun dışa aktarma hatası:', error);
-      setSaveError('Dışa aktarma hatası: ' + (error.message || 'Bilinmeyen hata'));
-    } finally {
-      setSavingGame(false);
+      console.error("Otomatik kayıt güncelleme hatası:", error);
     }
   };
   
@@ -475,9 +512,31 @@ const GameDashboard = () => {
         <DashboardHeader>
           <HeaderTitle>Oyun Yükleniyor...</HeaderTitle>
         </DashboardHeader>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div>Yükleniyor...</div>
-        </div>
+        <DashboardContent style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div>
+            <LoadingSpinner />
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>Yükleniyor...</div>
+          </div>
+        </DashboardContent>
+      </DashboardContainer>
+    );
+  }
+  
+  // Hata durumu
+  if (error && !charData) {
+    return (
+      <DashboardContainer>
+        <DashboardHeader>
+          <HeaderTitle>Oyun Yüklenemedi</HeaderTitle>
+        </DashboardHeader>
+        <DashboardContent style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ textAlign: 'center', maxWidth: '600px' }}>
+            <ErrorText>{error}</ErrorText>
+            <ActionButton onClick={returnToMainMenu} style={{ marginTop: '1rem' }}>
+              Ana Menüye Dön
+            </ActionButton>
+          </div>
+        </DashboardContent>
       </DashboardContainer>
     );
   }
@@ -559,6 +618,8 @@ const GameDashboard = () => {
         </Sidebar>
         
         <MainContent>
+          {error && <ErrorText>{error}</ErrorText>}
+          
           {selectedMenu === 'dashboard' && (
             <>
               {/* Parti ve Karakter Bilgileri */}
@@ -602,70 +663,6 @@ const GameDashboard = () => {
                     <StatLabel>Parti Kasası</StatLabel>
                   </StatItem>
                 </StatsGrid>
-              </DashboardCard>
-              
-              {/* Oyun Kayıt Kartı - Yeni Eklenen */}
-              <DashboardCard>
-                <CardTitle>Oyun Kayıt</CardTitle>
-                <div style={{ marginTop: '1rem' }}>
-                  <p>Oyun ilerlemenizi kaydedebilir veya dışa aktarabilirsiniz.</p>
-                  
-                  {saveSuccess && (
-                    <div style={{ 
-                      padding: '0.75rem',
-                      margin: '1rem 0',
-                      backgroundColor: 'rgba(40, 167, 69, 0.2)',
-                      borderRadius: '4px',
-                      borderLeft: '4px solid rgba(40, 167, 69, 0.8)'
-                    }}>
-                      {saveSuccess}
-                    </div>
-                  )}
-                  
-                  {saveError && (
-                    <div style={{ 
-                      padding: '0.75rem',
-                      margin: '1rem 0',
-                      backgroundColor: 'rgba(220, 53, 69, 0.2)',
-                      borderRadius: '4px',
-                      borderLeft: '4px solid rgba(220, 53, 69, 0.8)'
-                    }}>
-                      {saveError}
-                    </div>
-                  )}
-                  
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                    <ActionButton 
-                      onClick={handleSaveGame}
-                      disabled={savingGame}
-                    >
-                      {savingGame ? (
-                        <>
-                          <div style={{ 
-                            display: 'inline-block',
-                            width: '16px',
-                            height: '16px',
-                            border: '2px solid rgba(255, 255, 255, 0.3)',
-                            borderTop: '2px solid white',
-                            borderRadius: '50%',
-                            animation: 'spin 1s linear infinite',
-                            marginRight: '0.5rem'
-                          }} />
-                          Kaydediliyor...
-                        </>
-                      ) : (
-                        'Oyunu Kaydet'
-                      )}
-                    </ActionButton>
-                    
-                    <ActionButton
-                      onClick={handleExportGame}
-                      disabled={savingGame}
-                    >
-                      Oyunu Dışa Aktar
-                    </ActionButton>
-                  </div>
-                </div>
               </DashboardCard>
               
               {/* Güncel Olaylar */}
@@ -770,6 +767,16 @@ const GameDashboard = () => {
                   <ActionButton>Detaylı Analiz</ActionButton>
                 </div>
               </DashboardCard>
+              
+              {/* Oyun kontrolleri */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem' }}>
+                <ActionButton onClick={() => setShowSaveModal(true)}>
+                  Oyunu Kaydet
+                </ActionButton>
+                <ActionButton onClick={advanceTurn}>
+                  Tur İlerlet
+                </ActionButton>
+              </div>
             </>
           )}
           
@@ -794,6 +801,62 @@ const GameDashboard = () => {
           )}
         </MainContent>
       </DashboardContent>
+      
+      {/* Çıkış Modal */}
+      {showExitModal && (
+        <ModalBackdrop>
+          <ModalContent>
+            <ModalTitle>Oyundan Çıkış</ModalTitle>
+            <p>Oyundan çıkmak istediğinizden emin misiniz? Kaydedilmemiş ilerlemeleriniz kaybolacaktır.</p>
+            <ButtonContainer>
+              <ActionButton 
+                onClick={() => setShowExitModal(false)}
+                style={{ 
+                  background: 'rgba(100, 100, 100, 0.5)',
+                  color: 'white' 
+                }}
+              >
+                İptal
+              </ActionButton>
+              <ActionButton 
+                onClick={returnToMainMenu}
+                style={{ 
+                  background: 'rgba(200, 50, 50, 0.7)',
+                  color: 'white' 
+                }}
+              >
+                Çıkış Yap
+              </ActionButton>
+            </ButtonContainer>
+          </ModalContent>
+        </ModalBackdrop>
+      )}
+      
+      {/* Kaydetme Modal */}
+      {showSaveModal && (
+        <ModalBackdrop>
+          <ModalContent>
+            <ModalTitle>Oyunu Kaydet</ModalTitle>
+            <p>Oyununuz kaydedilecek. Devam etmek istiyor musunuz?</p>
+            <ButtonContainer>
+              <ActionButton 
+                onClick={() => setShowSaveModal(false)}
+                style={{ 
+                  background: 'rgba(100, 100, 100, 0.5)',
+                  color: 'white' 
+                }}
+              >
+                İptal
+              </ActionButton>
+              <ActionButton 
+                onClick={saveGame}
+              >
+                Kaydet
+              </ActionButton>
+            </ButtonContainer>
+          </ModalContent>
+        </ModalBackdrop>
+      )}
     </DashboardContainer>
   );
 };

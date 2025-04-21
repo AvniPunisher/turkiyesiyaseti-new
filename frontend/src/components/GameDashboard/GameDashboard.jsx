@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import apiHelper from '../../services/apiHelper';
 
-
 const DashboardContainer = styled.div`
   display: flex;
   flex-direction: column;

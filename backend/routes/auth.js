@@ -46,7 +46,8 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password, recaptchaValue } = req.body;
     
-    // reCAPTCHA doğrulama
+    // reCAPTCHA doğrulama 
+  /*
     const recaptchaValid = await verifyRecaptcha(recaptchaValue);
     if (!recaptchaValid) {
       return res.status(400).json({ 
@@ -54,7 +55,7 @@ router.post('/register', async (req, res) => {
         message: 'reCAPTCHA doğrulaması başarısız oldu' 
       });
     }
-    
+    */
     // Şifre karmaşıklığını kontrol et
     if (!isPasswordStrong(password)) {
       return res.status(400).json({

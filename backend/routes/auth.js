@@ -9,8 +9,12 @@ const { pool } = require('../config/db');
 const auth = require('../middleware/auth');
 const { sendVerificationEmail } = require('../services/emailService');
 
-// reCAPTCHA doğrulama fonksiyonu
+// reCAPTCHA doğrulama fonksiyonu - geçici olarak her zaman true döndürüyoruz
 const verifyRecaptcha = async (recaptchaValue) => {
+  // Geçici olarak doğrulamayı atlayıp her zaman başarılı dönüyoruz
+  return true;
+  
+  /* Orijinal kod:
   try {
     const response = await axios.post(
       `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaValue}`,
@@ -27,6 +31,7 @@ const verifyRecaptcha = async (recaptchaValue) => {
     console.error('reCAPTCHA doğrulama hatası:', error);
     return false;
   }
+  */
 };
 
 // Şifre karmaşıklığı kontrolü için yardımcı fonksiyon
@@ -46,8 +51,7 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password, recaptchaValue } = req.body;
     
-    // reCAPTCHA doğrulama 
-  /*
+    // reCAPTCHA doğrulama - recaptchaValue olmasa bile geçecek
     const recaptchaValid = await verifyRecaptcha(recaptchaValue);
     if (!recaptchaValid) {
       return res.status(400).json({ 
@@ -55,7 +59,7 @@ router.post('/register', async (req, res) => {
         message: 'reCAPTCHA doğrulaması başarısız oldu' 
       });
     }
-    */
+    
     // Şifre karmaşıklığını kontrol et
     if (!isPasswordStrong(password)) {
       return res.status(400).json({
@@ -74,7 +78,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Bu e-posta veya kullanıcı adı zaten kullanılıyor' });
     }
     
-    // Doğrulama tokeni oluştur
+    // Doğrulama tokeni oluştur - gerekli olabilir ama kullanmayacağız
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const tokenExpires = new Date();
     tokenExpires.setHours(tokenExpires.getHours() + 24); // 24 saat geçerli
@@ -83,23 +87,25 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     
-    // Kullanıcıyı veritabanına ekle
+    // Kullanıcıyı veritabanına ekle - email_verified değerini TRUE olarak ayarladık
     const [result] = await pool.execute(
-      'INSERT INTO users (username, email, password, verification_token, verification_token_expires, email_verified) VALUES (?, ?, ?, ?, ?, FALSE)',
+      'INSERT INTO users (username, email, password, verification_token, verification_token_expires, email_verified) VALUES (?, ?, ?, ?, ?, TRUE)',
       [username, email, hashedPassword, verificationToken, tokenExpires]
     );
     
-    // Doğrulama e-postası gönder
+    // Doğrulama e-postasını göndermeyi atlıyoruz
+    /* Orijinal kod:
     try {
       await sendVerificationEmail(email, username, verificationToken);
     } catch (emailError) {
       console.error('E-posta gönderim hatası:', emailError);
       // E-posta hatası olsa bile kullanıcıyı kaydet, sonra tekrar gönderilmesini sağlayabiliriz
     }
+    */
     
     res.status(201).json({ 
       success: true, 
-      message: 'Kullanıcı başarıyla kaydedildi. Lütfen e-posta adresinizi doğrulayın.' 
+      message: 'Kullanıcı başarıyla kaydedildi. Giriş yapabilirsiniz.' // Mesajı değiştirdik
     });
   } catch (error) {
     console.error('Kayıt hatası:', error);
@@ -132,7 +138,8 @@ router.post('/login', async (req, res) => {
     
     const user = users[0];
     
-    // E-posta doğrulamasını kontrol et
+    // E-posta doğrulamasını kontrolünü kaldırdık
+    /* Orijinal kod:
     if (!user.email_verified) {
       return res.status(401).json({ 
         success: false, 
@@ -140,6 +147,7 @@ router.post('/login', async (req, res) => {
         needsVerification: true
       });
     }
+    */
     
     // Şifreyi kontrol et
     const passwordMatch = await bcrypt.compare(password, user.password);
@@ -184,6 +192,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Diğer endpoint'ler korundu - gerektiğinde kullanılabilir
+
 // E-posta doğrulama endpoint'i
 router.get('/verify-email/:token', async (req, res) => {
   try {
@@ -227,36 +237,15 @@ router.post('/resend-verification', async (req, res) => {
       return res.status(400).json({ success: false, message: 'E-posta adresi gereklidir' });
     }
     
-    // Kullanıcıyı e-posta ile bul
-    const [users] = await pool.execute(
-      'SELECT * FROM users WHERE email = ? AND email_verified = FALSE',
+    // Kullanıcıyı doğrudan doğrulanmış olarak işaretle
+    await pool.execute(
+      'UPDATE users SET email_verified = TRUE WHERE email = ?',
       [email]
     );
     
-    if (users.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Kullanıcı bulunamadı veya zaten doğrulanmış' 
-      });
-    }
-    
-    // Yeni doğrulama tokeni oluştur
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const tokenExpires = new Date();
-    tokenExpires.setHours(tokenExpires.getHours() + 24);
-    
-    // Tokeni güncelle
-    await pool.execute(
-      'UPDATE users SET verification_token = ?, verification_token_expires = ? WHERE id = ?',
-      [verificationToken, tokenExpires, users[0].id]
-    );
-    
-    // Doğrulama e-postasını gönder
-    await sendVerificationEmail(email, users[0].username, verificationToken);
-    
     res.status(200).json({ 
       success: true, 
-      message: 'Doğrulama e-postası yeniden gönderildi' 
+      message: 'E-posta doğrulaması tamamlandı. Artık giriş yapabilirsiniz.' 
     });
   } catch (error) {
     console.error('Doğrulama e-postası yeniden gönderme hatası:', error);

@@ -145,48 +145,13 @@ router.post('/create-party', auth, async (req, res) => {
   }
 });
 
-// Parti bilgilerini getir
-router.get('/get-party', auth, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    
-    // Kullanıcının karakterini kontrol et
-    const [characters] = await pool.execute(
-      'SELECT * FROM game_characters WHERE user_id = ?',
-      [userId]
-    );
-    
-    if (characters.length === 0) {
-      return res.status(404).json({ success: false, message: 'Karakter bulunamadı' });
-    }
-    
-    const characterId = characters[0].id;
-    
-    // Kullanıcının partisini veritabanından al
-    const [parties] = await pool.execute(
-      'SELECT * FROM game_parties WHERE user_id = ? AND character_id = ?',
-      [userId, characterId]
-    );
-    
-    if (parties.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Parti bulunamadı' 
-      });
-    }
-    
-    // Döndürülecek parti verisi
-    const partyData = preparePartyData(parties[0]);
-    
-    return res.status(200).json({
-      success: true,
-      party: partyData
-    });
-    
-  } catch (error) {
-    console.error('Parti getirme hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası' });
-  }
+// Test route - Basitçe parti route'larının çalıştığını kontrol etmek için
+router.get('/test', (req, res) => {
+  res.status(200).json({ 
+    success: true, 
+    message: 'Party route çalışıyor',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Oyun kaydını parti bilgileriyle güncelle
@@ -329,5 +294,49 @@ function preparePartyData(dbParty) {
     return null;
   }
 }
+
+// Parti bilgilerini getir
+router.get('/get-party', auth, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Kullanıcının karakterini kontrol et
+    const [characters] = await pool.execute(
+      'SELECT * FROM game_characters WHERE user_id = ?',
+      [userId]
+    );
+    
+    if (characters.length === 0) {
+      return res.status(404).json({ success: false, message: 'Karakter bulunamadı' });
+    }
+    
+    const characterId = characters[0].id;
+    
+    // Kullanıcının partisini veritabanından al
+    const [parties] = await pool.execute(
+      'SELECT * FROM game_parties WHERE user_id = ? AND character_id = ?',
+      [userId, characterId]
+    );
+    
+    if (parties.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Parti bulunamadı' 
+      });
+    }
+    
+    // Döndürülecek parti verisi
+    const partyData = preparePartyData(parties[0]);
+    
+    return res.status(200).json({
+      success: true,
+      party: partyData
+    });
+    
+  } catch (error) {
+    console.error('Parti getirme hatası:', error);
+    res.status(500).json({ success: false, message: 'Sunucu hatası' });
+  }
+});
 
 module.exports = router;

@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+const gameRoutes = require('./routes/game');
 
 // Ortam değişkenlerini yükle
 dotenv.config();
@@ -41,7 +42,7 @@ testConnection()
 
 // Rotalar
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/game', require('./routes/game'));
+app.use('/api/game', gameRoutes);
 app.use('/api/character', require('./routes/character')); 
 app.use('/api/party', require('./routes/party')); 
 

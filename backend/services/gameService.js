@@ -62,11 +62,19 @@ const saveGame = async (saveData) => {
       saveId = result.insertId;
     }
     
-    // Karakter ve parti verilerini kayıt tablosunda sakla
-    await storeCharacterSnapshot(connection, saveId, characterId);
-    
-    if (partyId) {
-      await storePartySnapshot(connection, saveId, partyId);
+    try {
+      // Character_snapshots tablosunun varlığını kontrol et
+      await connection.query('SELECT 1 FROM character_snapshots LIMIT 1');
+      
+      // Karakter ve parti verilerini kayıt tablosunda sakla
+      await storeCharacterSnapshot(connection, saveId, characterId);
+      
+      if (partyId) {
+        await storePartySnapshot(connection, saveId, partyId);
+      }
+    } catch (snapshotError) {
+      // Snapshot tabloları yoksa bir şey yapma, sadece loglama yap
+      console.log('Snapshot tabloları bulunamadı, atlanıyor:', snapshotError.message);
     }
     
     // Transaction'ı tamamla
@@ -90,29 +98,66 @@ const saveGame = async (saveData) => {
  */
 const loadGame = async (saveId, userId) => {
   try {
-    // Kayıt, karakter snapshot ve parti snapshot verilerini al
-    const [gameSaves] = await pool.query(
-      `SELECT gs.*, cs.character_data, ps.party_data
-       FROM game_saves gs
-       LEFT JOIN character_snapshots cs ON gs.id = cs.save_id
-       LEFT JOIN party_snapshots ps ON gs.id = ps.save_id
-       WHERE gs.id = ? AND gs.user_id = ? AND gs.is_active = TRUE`,
-      [saveId, userId]
-    );
+    let character = null;
+    let party = null;
+    let savedGame = null;
     
-    if (gameSaves.length === 0) {
-      throw new Error('Kayıtlı oyun bulunamadı');
+    try {
+      // Önce snapshot tabloları var mı kontrol et
+      const [checkSnapshots] = await pool.query(
+        "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'character_snapshots'"
+      );
+      
+      if (checkSnapshots.length > 0) {
+        // Kayıt, karakter snapshot ve parti snapshot verilerini al
+        const [gameSaves] = await pool.query(
+          `SELECT gs.*, cs.character_data, ps.party_data
+           FROM game_saves gs
+           LEFT JOIN character_snapshots cs ON gs.id = cs.save_id
+           LEFT JOIN party_snapshots ps ON gs.id = ps.save_id
+           WHERE gs.id = ? AND gs.user_id = ? AND gs.is_active = TRUE`,
+          [saveId, userId]
+        );
+        
+        if (gameSaves.length === 0) {
+          throw new Error('Kayıtlı oyun bulunamadı');
+        }
+        
+        savedGame = gameSaves[0];
+        
+        // Karakter verilerini hazırla - önce snapshot'tan, yoksa veritabanından al
+        if (savedGame.character_data) {
+          // Snapshot'tan karakter verisini kullan
+          character = JSON.parse(savedGame.character_data);
+        }
+        
+        // Parti verilerini hazırla - önce snapshot'tan, yoksa veritabanından al
+        if (savedGame.party_id && savedGame.party_data) {
+          // Snapshot'tan parti verisini kullan
+          party = JSON.parse(savedGame.party_data);
+        }
+      }
+    } catch (snapshotError) {
+      console.log('Snapshot işlemi başarısız, normal yükleme deneniyor:', snapshotError.message);
     }
     
-    const savedGame = gameSaves[0];
+    if (!savedGame) {
+      // Temel game_saves verisini al
+      const [gameSaves] = await pool.query(
+        `SELECT * FROM game_saves 
+         WHERE id = ? AND user_id = ? AND is_active = TRUE`,
+        [saveId, userId]
+      );
+      
+      if (gameSaves.length === 0) {
+        throw new Error('Kayıtlı oyun bulunamadı');
+      }
+      
+      savedGame = gameSaves[0];
+    }
     
-    // Karakter verilerini hazırla - önce snapshot'tan, yoksa veritabanından al
-    let character;
-    if (savedGame.character_data) {
-      // Snapshot'tan karakter verisini kullan
-      character = JSON.parse(savedGame.character_data);
-    } else {
-      // Veritabanından güncel karakter verisini al
+    // Karakter verisini al (eğer snapshot'tan alınmadıysa)
+    if (!character) {
       const [characters] = await pool.query(
         'SELECT * FROM game_characters WHERE id = ?',
         [savedGame.character_id]
@@ -123,35 +168,34 @@ const loadGame = async (saveId, userId) => {
       }
       
       character = prepareCharacterData(characters[0]);
-      
-      // Bu karakteri snapshot'a kaydet
-      await storeCharacterSnapshot(pool, saveId, savedGame.character_id);
     }
     
-    // Parti verilerini hazırla - önce snapshot'tan, yoksa veritabanından al
-    let party = null;
-    if (savedGame.party_id) {
-      if (savedGame.party_data) {
-        // Snapshot'tan parti verisini kullan
-        party = JSON.parse(savedGame.party_data);
-      } else {
-        // Veritabanından güncel parti verisini al
-        const [parties] = await pool.query(
-          'SELECT * FROM game_parties WHERE id = ?',
-          [savedGame.party_id]
-        );
-        
-        if (parties.length > 0) {
-          party = preparePartyData(parties[0]);
-          
-          // Bu partiyi snapshot'a kaydet
-          await storePartySnapshot(pool, saveId, savedGame.party_id);
-        }
+    // Parti verisini al (eğer snapshot'tan alınmadıysa)
+    if (savedGame.party_id && !party) {
+      const [parties] = await pool.query(
+        'SELECT * FROM game_parties WHERE id = ?',
+        [savedGame.party_id]
+      );
+      
+      if (parties.length > 0) {
+        party = preparePartyData(parties[0]);
       }
     }
     
     // Oyun verisini hazırla
-    const gameData = JSON.parse(savedGame.game_data);
+    let gameData = {};
+    try {
+      // Önce veri tipini kontrol et
+      if (typeof savedGame.game_data === 'string') {
+        gameData = JSON.parse(savedGame.game_data);
+      } else if (typeof savedGame.game_data === 'object') {
+        // Zaten obje ise doğrudan kullan
+        gameData = savedGame.game_data;
+      }
+    } catch (jsonError) {
+      console.error('Oyun verisi JSON parse hatası:', jsonError);
+      throw new Error(`JSON parse hatası: ${jsonError.message}`);
+    }
     
     return {
       saveId: savedGame.id,
@@ -168,6 +212,90 @@ const loadGame = async (saveId, userId) => {
     };
   } catch (error) {
     console.error('Oyun yükleme hatası:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tüm kayıtlı oyunları listele
+ * @param {number} userId - Kullanıcı ID'si
+ * @returns {Promise<Array>} - Kayıtlı oyunlar listesi
+ */
+const listSavedGames = async (userId) => {
+  try {
+    // Kullanıcının kayıtlı oyunlarını getir
+    const [savedGames] = await pool.query(
+      `SELECT gs.*, 
+       gc.full_name as character_name,
+       gp.name as party_name, 
+       gp.short_name as party_short_name,
+       gp.color_id as party_color 
+       FROM game_saves gs
+       LEFT JOIN game_characters gc ON gs.character_id = gc.id
+       LEFT JOIN game_parties gp ON gs.party_id = gp.id
+       WHERE gs.user_id = ? AND gs.is_active = TRUE
+       ORDER BY gs.is_auto_save ASC, gs.updated_at DESC`,
+      [userId]
+    );
+    
+    // İstemci tarafı için veri dönüşümü
+    return savedGames.map(game => ({
+      id: game.id,
+      saveName: game.save_name,
+      saveSlot: game.save_slot,
+      isAutoSave: game.is_auto_save === 1,
+      characterName: game.character_name,
+      partyName: game.party_name,
+      partyShortName: game.party_short_name,
+      partyColor: game.party_color,
+      gameDate: game.game_date,
+      gameVersion: game.game_version,
+      createdAt: game.created_at,
+      updatedAt: game.updated_at
+    }));
+  } catch (error) {
+    console.error('Kayıtlı oyunları listeleme hatası:', error);
+    throw error;
+  }
+};
+
+/**
+ * Kayıtlı oyunu sil (soft delete)
+ * @param {number} saveId - Kayıt ID'si
+ * @param {number} userId - Kullanıcı ID'si
+ * @returns {Promise<boolean>} - Başarılı ise true
+ */
+const deleteSavedGame = async (saveId, userId) => {
+  try {
+    // Önce kaydı kontrol et
+    const [saves] = await pool.query(
+      'SELECT * FROM game_saves WHERE id = ? AND user_id = ?',
+      [saveId, userId]
+    );
+    
+    if (saves.length === 0) {
+      throw new Error('Kayıtlı oyun bulunamadı');
+    }
+    
+    const isAutoSave = saves[0].is_auto_save === 1;
+    
+    if (isAutoSave) {
+      throw new Error('Otomatik kayıtlar silinemez');
+    }
+    
+    // Soft delete işlemi
+    const [result] = await pool.query(
+      'UPDATE game_saves SET is_active = FALSE WHERE id = ? AND user_id = ?',
+      [saveId, userId]
+    );
+    
+    if (result.affectedRows === 0) {
+      throw new Error('Kayıt silme başarısız oldu');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Kayıtlı oyun silme hatası:', error);
     throw error;
   }
 };
@@ -264,16 +392,65 @@ const storePartySnapshot = async (connection, saveId, partyId) => {
   }
 };
 
+/**
+ * Snapshot tablolarını oluştur (eğer yoksa)
+ * @returns {Promise<boolean>} - Başarılı ise true
+ */
+const createSnapshotTables = async () => {
+  try {
+    // Character_snapshots tablosunu oluştur
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS character_snapshots (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        save_id INT NOT NULL,
+        character_id INT NOT NULL,
+        character_data JSON NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (save_id) REFERENCES game_saves(id),
+        FOREIGN KEY (character_id) REFERENCES game_characters(id)
+      )
+    `);
+    
+    // Party_snapshots tablosunu oluştur
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS party_snapshots (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        save_id INT NOT NULL,
+        party_id INT NOT NULL,
+        party_data JSON NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (save_id) REFERENCES game_saves(id),
+        FOREIGN KEY (party_id) REFERENCES game_parties(id)
+      )
+    `);
+    
+    console.log('Snapshot tabloları başarıyla oluşturuldu');
+    return true;
+  } catch (error) {
+    console.error('Snapshot tabloları oluşturma hatası:', error);
+    return false;
+  }
+};
+
 // Veritabanından gelen karakter verisini istemci için hazırla
 function prepareCharacterData(dbCharacter) {
   if (!dbCharacter) return null;
   
   try {
     // Veritabanından gelen JSON string'leri parse et
-    const ideology = dbCharacter.ideology ? JSON.parse(dbCharacter.ideology) : {};
-    const stats = dbCharacter.stats ? JSON.parse(dbCharacter.stats) : {};
-    const dynamicValues = dbCharacter.dynamic_values ? JSON.parse(dbCharacter.dynamic_values) : {};
-    const expertise = dbCharacter.expertise ? JSON.parse(dbCharacter.expertise) : [];
+    const ideology = dbCharacter.ideology ? 
+      (typeof dbCharacter.ideology === 'string' ? JSON.parse(dbCharacter.ideology) : dbCharacter.ideology) : {};
+      
+    const stats = dbCharacter.stats ? 
+      (typeof dbCharacter.stats === 'string' ? JSON.parse(dbCharacter.stats) : dbCharacter.stats) : {};
+      
+    const dynamicValues = dbCharacter.dynamic_values ? 
+      (typeof dbCharacter.dynamic_values === 'string' ? JSON.parse(dbCharacter.dynamic_values) : dbCharacter.dynamic_values) : {};
+      
+    const expertise = dbCharacter.expertise ? 
+      (typeof dbCharacter.expertise === 'string' ? JSON.parse(dbCharacter.expertise) : dbCharacter.expertise) : [];
     
     // İstemci tarafı için karakter nesnesini oluştur
     return {
@@ -304,8 +481,11 @@ function preparePartyData(dbParty) {
   
   try {
     // Veritabanından gelen JSON string'leri parse et
-    const ideology = dbParty.ideology ? JSON.parse(dbParty.ideology) : {};
-    const supportBase = dbParty.support_base ? JSON.parse(dbParty.support_base) : {};
+    const ideology = dbParty.ideology ? 
+      (typeof dbParty.ideology === 'string' ? JSON.parse(dbParty.ideology) : dbParty.ideology) : {};
+      
+    const supportBase = dbParty.support_base ? 
+      (typeof dbParty.support_base === 'string' ? JSON.parse(dbParty.support_base) : dbParty.support_base) : {};
     
     // İstemci tarafı için parti nesnesini oluştur
     return {
@@ -331,6 +511,7 @@ function preparePartyData(dbParty) {
 module.exports = {
   saveGame,
   loadGame,
-  storeCharacterSnapshot,
-  storePartySnapshot
+  listSavedGames,
+  deleteSavedGame,
+  createSnapshotTables
 };

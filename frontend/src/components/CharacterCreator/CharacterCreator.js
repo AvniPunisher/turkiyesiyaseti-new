@@ -1,6 +1,6 @@
 // src/components/CharacterCreator/CharacterCreator.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './CharacterCreator.css';
 
@@ -14,8 +14,13 @@ import professions from '../../data/professions.json';
 
 const CharacterCreator = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
+  
+  // Slot ID'yi location state'inden al - yeni eklendi
+  const slotId = location.state?.slotId || 1;
+  
   const [character, setCharacter] = useState({
     gameName: '',
     fullName: '',
@@ -261,11 +266,11 @@ const CharacterCreator = () => {
     }
   };
   
-  // Karakter oluşturma işlemi
+  // Karakter oluşturma işlemi - slot ID desteği eklendi
   const createCharacter = async () => {
     try {
       setLoading(true);
-      console.log("Karakter oluşturuluyor:", character);
+      console.log("Karakter oluşturuluyor:", character, "Slot ID:", slotId);
       
       // Token kontrolü
       const token = localStorage.getItem('token');
@@ -283,32 +288,40 @@ const CharacterCreator = () => {
       }
       
       // Karakter verilerini localStorage'a da kaydet
-      // böylece API hatası olsa bile parti oluşturmada kullanabiliriz
+      // Slot ID'yi de içeren veri
+      const characterData = {
+        ...character,
+        slotId: slotId
+      };
+      
       try {
-        localStorage.setItem('characterData', JSON.stringify(character));
+        localStorage.setItem('characterData', JSON.stringify(characterData));
       } catch (e) {
         console.error("Karakter verileri localStorage'a kaydedilemedi:", e);
       }
       
       // Karakter verisini API'ye gönder
       try {
-        const response = await apiHelper.post('/api/game/create-character', { character });
+        const response = await apiHelper.post('/api/game/create-character', { 
+          character: characterData,
+          slotId: slotId
+        });
       
         if (response.success) {
           alert('Karakter başarıyla oluşturuldu!');
-          // Doğrudan parti oluşturma sayfasına yönlendir
-          navigate('/party-creator');
+          // Doğrudan parti oluşturma sayfasına yönlendir, slot ID'yi de aktar
+          navigate('/party-creator', { state: { character: response.data.character, slotId: slotId } });
         } else {
           // API başarısız olsa bile devam et
           console.error("API başarısız oldu, ancak devam ediyoruz:", response.message);
           alert('Karakter bilgileri kaydedildi, parti oluşturmaya devam edebilirsiniz.');
-          navigate('/party-creator');
+          navigate('/party-creator', { state: { slotId: slotId } });
         }
       } catch (error) {
         // API hatası olsa bile devam et
         console.error("API hatası, ancak localStorage'a kaydettik:", error);
         alert('Sunucu bağlantısında sorun var, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.');
-        navigate('/party-creator');
+        navigate('/party-creator', { state: { slotId: slotId } });
       }
     } catch (error) {
       console.error("Karakter oluşturma hatası:", error);
@@ -316,25 +329,25 @@ const CharacterCreator = () => {
       // API bağlantı hatası
       if (error.code === 'ERR_NETWORK') {
         alert("Sunucuya bağlantı kurulamadı, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
-        navigate('/party-creator');
+        navigate('/party-creator', { state: { slotId: slotId } });
       } 
       // Token hatası
       else if (error.response && error.response.status === 401) {
         alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
         localStorage.removeItem('token');
-        navigate('/login', { state: { returnUrl: '/character-creator' } });
+        navigate('/login', { state: { returnUrl: '/character-creator', slotId: slotId } });
       }
       // Sunucu hatası (500)
       else if (error.response && error.response.status === 500) {
         console.error("Sunucu hatası detayları:", error.response.data);
         alert("Sunucu hatası, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
-        navigate('/party-creator');
+        navigate('/party-creator', { state: { slotId: slotId } });
       }
       // Diğer hatalar
       else {
         console.error("Hata detayları:", error.response?.data || error);
         alert("Karakter oluşturulurken bir hata oluştu, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
-        navigate('/party-creator');
+        navigate('/party-creator', { state: { slotId: slotId } });
       }
     } finally {
       setLoading(false);
@@ -355,7 +368,7 @@ const CharacterCreator = () => {
   return (
     <div className="character-container">
       <div className="character-header">
-        <h1 className="character-title">Karakter Oluşturma</h1>
+        <h1 className="character-title">Karakter Oluşturma - Slot {slotId}</h1>
       </div>
       
       <div className="character-content">

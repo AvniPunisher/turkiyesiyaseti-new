@@ -22,6 +22,9 @@ const saveGame = async (saveData) => {
     throw new Error('Karakter verisi eksik');
   }
   
+  // gameData kontrol et ve düzelt
+  let sanitizedGameData = gameData;
+  
   // Bağlantı al ve transaction başlat
   const connection = await pool.getConnection();
   await connection.beginTransaction();
@@ -34,6 +37,29 @@ const saveGame = async (saveData) => {
     );
     
     let saveId;
+    let gameDataJson;
+    
+    // gameData'nın JSON formatına dönüştürülmesi
+    try {
+      // Eğer gameData zaten bir string ise ve JSON formatındaysa, tekrar stringleştirme
+      if (typeof gameData === 'string') {
+        try {
+          // Test amaçlı parse et
+          JSON.parse(gameData);
+          gameDataJson = gameData;
+        } catch (e) {
+          // Parse edilemiyorsa, muhtemelen geçersiz bir JSON string'i
+          gameDataJson = JSON.stringify(sanitizedGameData);
+        }
+      } else {
+        // Obje ise JSON string'e dönüştür
+        gameDataJson = JSON.stringify(sanitizedGameData);
+      }
+    } catch (jsonError) {
+      console.error('JSON dönüştürme hatası:', jsonError);
+      // Hata durumunda boş bir obje kaydet
+      gameDataJson = '{}';
+    }
     
     if (existingSaves.length > 0) {
       // Mevcut kaydı güncelle
@@ -42,7 +68,7 @@ const saveGame = async (saveData) => {
          save_name = ?, party_id = ?, game_data = ?, game_date = ?, game_version = ?, 
          updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [saveName, partyId, JSON.stringify(gameData), gameDate, gameVersion, existingSaves[0].id]
+        [saveName, partyId, gameDataJson, gameDate, gameVersion, existingSaves[0].id]
       );
       
       saveId = existingSaves[0].id;
@@ -54,7 +80,7 @@ const saveGame = async (saveData) => {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId, characterId, partyId, saveName, saveSlot, 
-          JSON.stringify(gameData), gameDate, gameVersion, 
+          gameDataJson, gameDate, gameVersion, 
           isAutoSave ? 1 : 0
         ]
       );
@@ -187,13 +213,25 @@ const loadGame = async (saveId, userId) => {
     try {
       // Önce veri tipini kontrol et
       if (typeof savedGame.game_data === 'string') {
-        gameData = JSON.parse(savedGame.game_data);
+        // String olduğunda, çift JSON formatı kontrolü yap
+        if (savedGame.game_data.startsWith('"') && savedGame.game_data.endsWith('"') &&
+            savedGame.game_data.includes('\\')) {
+          // Çift tırnak içindeki escape edilmiş JSON'ı düzelt
+          const unescapedData = savedGame.game_data.substr(1, savedGame.game_data.length - 2)
+            .replace(/\\"/g, '"')
+            .replace(/\\\\/g, '\\');
+          gameData = JSON.parse(unescapedData);
+        } else {
+          // Normal JSON string
+          gameData = JSON.parse(savedGame.game_data);
+        }
       } else if (typeof savedGame.game_data === 'object') {
         // Zaten obje ise doğrudan kullan
         gameData = savedGame.game_data;
       }
     } catch (jsonError) {
       console.error('Oyun verisi JSON parse hatası:', jsonError);
+      console.error('Problematik veri:', savedGame.game_data);
       throw new Error(`JSON parse hatası: ${jsonError.message}`);
     }
     
@@ -434,6 +472,59 @@ const createSnapshotTables = async () => {
   }
 };
 
+/**
+ * Veritabanındaki game_data sütununu düzelt
+ * @returns {Promise<number>} - Düzeltilen kayıt sayısı
+ */
+const fixGameDataInDatabase = async () => {
+  try {
+    // Tüm kayıtları al
+    const [saves] = await pool.query('SELECT id, game_data FROM game_saves');
+    let fixedCount = 0;
+    
+    // Her kayıt için kontrol et ve düzelt
+    for (const save of saves) {
+      try {
+        let gameData = save.game_data;
+        
+        // Eğer string ise JSON parse etmeyi dene
+        if (typeof gameData === 'string') {
+          // Eğer tırnaklarla çevrili bir string ise (çift JSON)
+          if (gameData.startsWith('"') && gameData.endsWith('"') &&
+              gameData.includes('\\')) {
+            try {
+              // Önce dış tırnakları kaldır, sonra parse et
+              const unescapedData = gameData.substr(1, gameData.length - 2)
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
+              const parsedData = JSON.parse(unescapedData);
+              
+              // Düzeltilmiş veriyi güncelle
+              await pool.query(
+                'UPDATE game_saves SET game_data = ? WHERE id = ?',
+                [JSON.stringify(parsedData), save.id]
+              );
+              
+              fixedCount++;
+              console.log(`Kayıt ID ${save.id} düzeltildi.`);
+            } catch (parseError) {
+              console.error(`Kayıt ID ${save.id} için parse hatası:`, parseError.message);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Kayıt ID ${save.id} için hata:`, error.message);
+      }
+    }
+    
+    console.log(`Toplam ${fixedCount} kayıt düzeltildi.`);
+    return fixedCount;
+  } catch (error) {
+    console.error('Veritabanı düzeltme işlemi hatası:', error);
+    throw error;
+  }
+};
+
 // Veritabanından gelen karakter verisini istemci için hazırla
 function prepareCharacterData(dbCharacter) {
   if (!dbCharacter) return null;
@@ -513,5 +604,6 @@ module.exports = {
   loadGame,
   listSavedGames,
   deleteSavedGame,
-  createSnapshotTables
+  createSnapshotTables,
+  fixGameDataInDatabase
 };

@@ -1,6 +1,6 @@
 // src/components/PartyCreator/PartyCreator.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './PartyCreator.css';
 
 // API yardımcı servisi
@@ -29,12 +29,15 @@ const getContrastColor = (hexColor) => {
 
 const PartyCreator = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const slotId = location.state?.slotId || 1;
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [party, setParty] = useState({
     name: '',
     shortName: '',
     colorId: '#d32f2f',
+    slotId: slotId, // Slot ID'yi başlangıçta ekle
     // İdeoloji değerleri (0-100 arası)
     ideology: {
       economic: 50,
@@ -63,10 +66,10 @@ const PartyCreator = () => {
           return;
         }
 
-        // Karakter bilgilerini API'den al
+        // Karakter bilgilerini API'den al (slot id ile)
         try {
-          console.log("Karakter bilgisi alınıyor...");
-          const response = await apiHelper.get('/api/game/get-character');
+          console.log("Karakter bilgisi alınıyor...", slotId);
+          const response = await apiHelper.get(`/api/game/get-character/${slotId}`);
           console.log("API yanıtı:", response);
           
           if (response.success && response.data.character) {
@@ -76,24 +79,39 @@ const PartyCreator = () => {
               ...prev,
               founderId: characterData.id,
               founderName: characterData.fullName,
+              slotId: slotId, // Slot ID'yi parti verisine ekle
               ideology: { ...characterData.ideology } // Karakter ideolojisini başlangıç değeri olarak al
             }));
           } else {
-            // Son çare olarak localStorage'dan veri almayı dene
-            const storedCharacter = localStorage.getItem('characterData');
-            if (storedCharacter) {
-              const characterData = JSON.parse(storedCharacter);
+            // Son çare olarak normal endpoint'i dene
+            const fallbackResponse = await apiHelper.get('/api/game/get-character');
+            
+            if (fallbackResponse.success && fallbackResponse.data.character) {
+              const characterData = fallbackResponse.data.character;
               setCharacter(characterData);
               setParty(prev => ({
                 ...prev,
-                founderId: characterData.id || 1,
-                founderName: characterData.fullName || 'Karakter Adı',
-                ideology: characterData.ideology || prev.ideology
+                founderId: characterData.id,
+                founderName: characterData.fullName,
+                ideology: { ...characterData.ideology }
               }));
             } else {
-              console.log('Karakter bilgisi alınamadı.');
-              alert('Karakter bilgisi alınamadı. Lütfen önce karakter oluşturun.');
-              navigate('/character-creator');
+              // Son çare olarak localStorage'dan veri almayı dene
+              const storedCharacter = localStorage.getItem('characterData');
+              if (storedCharacter) {
+                const characterData = JSON.parse(storedCharacter);
+                setCharacter(characterData);
+                setParty(prev => ({
+                  ...prev,
+                  founderId: characterData.id || 1,
+                  founderName: characterData.fullName || 'Karakter Adı',
+                  ideology: characterData.ideology || prev.ideology
+                }));
+              } else {
+                console.log('Karakter bilgisi alınamadı.');
+                alert('Karakter bilgisi alınamadı. Lütfen önce karakter oluşturun.');
+                navigate('/character-creator');
+              }
             }
           }
         } catch (apiError) {
@@ -122,7 +140,7 @@ const PartyCreator = () => {
     };
 
     fetchCharacter();
-  }, [navigate]);
+  }, [navigate, slotId]);
 
   // İdeolojik etiketler
   const getIdeologicalLabel = (position) => {
@@ -217,7 +235,7 @@ const PartyCreator = () => {
   const createParty = async () => {
     try {
       setLoading(true);
-      console.log("Parti oluşturuluyor:", party);
+      console.log("Parti oluşturuluyor:", party, "Slot ID:", slotId);
       
       // Token kontrolü
       const token = localStorage.getItem('token');
@@ -241,20 +259,23 @@ const PartyCreator = () => {
         console.warn("Parti verileri localStorage'a kaydedilemedi:", storageError);
       }
       
-      // Parti verisini API'ye gönder
-      // Doğru endpoint: /api/game/create-party
-      const response = await apiHelper.post('/api/game/create-party', { party });
+      // Parti verisini API'ye gönder (slot id ile)
+      const response = await apiHelper.post('/api/game/create-party', { 
+        party: party,
+        slotId: slotId
+      });
       
       console.log("API yanıtı:", response);
 
       if (response.success) {
         alert('Parti başarıyla oluşturuldu!');
         
-        // GameDashboard'a geçiş yap (parti ve karakter verilerini aktar)
-        navigate('/game-dashboard', { 
+        // SlotId ile SinglePlayer'a yönlendir
+        navigate(`/single-player?slotId=${slotId}`, { 
           state: { 
             party: party,
-            character: character 
+            character: character,
+            slotId: slotId
           } 
         });
       } else {
@@ -264,42 +285,46 @@ const PartyCreator = () => {
           navigate('/login', { state: { returnUrl: '/party-creator' } });
         } else if (response.networkError) {
           alert("Sunucuya bağlantı kurulamadı. API erişimi olmadan devam ediliyor.");
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
-          navigate('/game-dashboard', { 
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
+          navigate(`/single-player?slotId=${slotId}`, { 
             state: { 
               party: party,
               character: character,
+              slotId: slotId,
               offlineMode: true 
             } 
           });
         } else if (response.notFoundError) {
           alert("API endpoint bulunamadı (404 hatası). API erişimi olmadan devam ediliyor.");
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
-          navigate('/game-dashboard', { 
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
+          navigate(`/single-player?slotId=${slotId}`, { 
             state: { 
               party: party,
               character: character,
+              slotId: slotId,
               offlineMode: true 
             } 
           });
         } else if (response.status === 500) {
           console.error("Sunucu hatası detayları:", response.data);
           alert("Sunucu hatası: API'de bir problem oluştu. API erişimi olmadan devam ediliyor.");
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
-          navigate('/game-dashboard', { 
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
+          navigate(`/single-player?slotId=${slotId}`, { 
             state: { 
               party: party,
               character: character,
+              slotId: slotId,
               offlineMode: true 
             } 
           });
         } else {
           alert(`Parti oluşturulurken bir hata oluştu: ${response.message}. API erişimi olmadan devam ediliyor.`);
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
-          navigate('/game-dashboard', { 
+          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
+          navigate(`/single-player?slotId=${slotId}`, { 
             state: { 
               party: party,
               character: character,
+              slotId: slotId,
               offlineMode: true 
             } 
           });
@@ -310,11 +335,12 @@ const PartyCreator = () => {
       console.error("Beklenmeyen hata:", error);
       alert(`Beklenmeyen bir hata oluştu: ${error.message}. API erişimi olmadan devam ediliyor.`);
       
-      // Hata olsa bile kullanıcı deneyiminin devam etmesi için GameDashboard'a yönlendir
-      navigate('/game-dashboard', { 
+      // Hata olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
+      navigate(`/single-player?slotId=${slotId}`, { 
         state: { 
           party: party,
           character: character,
+          slotId: slotId,
           offlineMode: true 
         } 
       });
@@ -325,7 +351,7 @@ const PartyCreator = () => {
 
   // Önceki sayfaya dönme fonksiyonu
   const handleGoBack = () => {
-    navigate('/single-player');
+    navigate('/single-player', { state: { slotId: slotId } });
   };
 
   // İdeoloji etiketlerini oluştur
@@ -449,6 +475,14 @@ const PartyCreator = () => {
                   İlerleyen adımda bu değerleri düzenleyebilirsiniz.
                 </p>
               </div>
+              
+              {/* Slot bilgisi göster */}
+              <div className="info-box" style={{marginTop: '1rem'}}>
+                <h4 style={{fontSize: '1rem', margin: '0 0 0.75rem 0', color: 'rgba(0, 200, 255, 0.8)'}}>Oyun Slotu</h4>
+                <p style={{fontSize: '0.9rem', margin: '0 0 0.5rem 0'}}>
+                  Parti <strong>Slot {slotId}</strong> için oluşturuluyor.
+                </p>
+              </div>
             </div>
           )}
           
@@ -548,6 +582,10 @@ const PartyCreator = () => {
                 
                 <div className="party-founder">
                   Kurucu: {party.founderName}
+                </div>
+                
+                <div className="mt-2 text-sm text-gray-300">
+                  Slot ID: {slotId}
                 </div>
               </div>
               

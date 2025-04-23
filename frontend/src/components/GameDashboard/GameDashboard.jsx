@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import { 
   Settings, Calendar, ChevronLeft, ChevronRight, Save, 
   LogOut, Home, BarChart2, FileText, Users, MessageCircle, 
-  Award, Map, Clock, AlertTriangle, Check, X, HelpCircle
+  Award, Map, Clock, AlertTriangle, Check, X, HelpCircle, Activity, Globe, User
 } from 'lucide-react';
 
 // API yardımcı servisi

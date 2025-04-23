@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import apiHelper from '../services/apiHelper';
+import gameService from '../services/gameService';
 
 const GameContainer = styled.div`
   display: flex;
@@ -32,7 +33,7 @@ const GameCanvas = styled.div`
   justify-content: center;
   align-items: center;
   position: relative;
-  overflow-y: auto; /* İçerik taşarsa scroll olsun */
+  overflow-y: auto;
 `;
 
 const GameControls = styled.div`
@@ -71,7 +72,7 @@ const GameOverlay = styled.div`
   align-items: center;
   background: rgba(0, 10, 20, 0.8);
   z-index: 10;
-  overflow-y: auto; /* İçerik taşarsa scroll olsun */
+  overflow-y: auto;
   padding: 2rem 0;
 `;
 
@@ -128,18 +129,6 @@ const LoadingText = styled.div`
   margin: 2rem 0;
 `;
 
-const ErrorText = styled.div`
-  font-size: 1.2rem;
-  color: #ff5555;
-  text-align: center;
-  margin: 1rem 0;
-  background: rgba(255, 0, 0, 0.1);
-  padding: 1rem;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 0, 0, 0.3);
-  max-width: 80%;
-`;
-
 // Kontrastlı metin rengi seçimi için yardımcı fonksiyon
 const getContrastTextColor = (hexColor) => {
   if (!hexColor || hexColor === '#555555') return '#ffffff';
@@ -159,473 +148,109 @@ const getContrastTextColor = (hexColor) => {
 const SinglePlayer = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gamePaused, setGamePaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [character, setCharacter] = useState(null);
   const [party, setParty] = useState(null);
   const [hasCharacter, setHasCharacter] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [autoSave, setAutoSave] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [gameData, setGameData] = useState({
-    score: 0,
-    level: 1,
-    // Diğer oyun verileri...
-  });
-  
-  // Çoklu slot desteği için eklenmiş state'ler
-  const [availableSlots, setAvailableSlots] = useState([
-    { id: 1, name: "Slot 1", character: null, hasData: false },
-    { id: 2, name: "Slot 2", character: null, hasData: false },
-    { id: 3, name: "Slot 3", character: null, hasData: false }
-  ]);
-  const [selectedSlot, setSelectedSlot] = useState(1);
-  const [showSlotSelection, setShowSlotSelection] = useState(true);
-  
+  const [selectedSaveSlot, setSelectedSaveSlot] = useState(1); // Varsayılan slot 1
+
   // Oyun açılışında hazırlık
   useEffect(() => {
-    // 1. Location state'ten yüklenen oyun kontrolü
-    if (location.state?.loadedGame) {
-      console.log("URL'den oyun verisi alındı, oyun yükleniyor...");
-      loadGameFromState(location.state.loadedGame);
-      return;
-    }
-    
-    // 2. Kullanıcı giriş kontrolü
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      console.log("Token bulunamadı, giriş sayfasına yönlendiriliyor");
-      navigate('/login', { state: { returnUrl: '/single-player' } });
-      return;
-    }
-    
-    // 3. Tüm slotları ve kayıtları kontrol et
-    fetchAllCharactersAndSaves();
-  }, [location.pathname]); // sadece path değişirse çalışsın
-  
-  // Tüm karakterleri ve kayıtları yükleme fonksiyonu
-  const fetchAllCharactersAndSaves = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Token kontrolü
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login', { state: { returnUrl: '/single-player' } });
-        return;
-      }
-      
-      // Tüm karakterleri getir
-      const characterResponse = await apiHelper.get('/api/character/get-all-characters');
-      
-      if (characterResponse.success && characterResponse.data.characters) {
-        // Slot verilerini güncelle
-        const updatedSlots = [...availableSlots];
+    const prepareGame = async () => {
+      try {
+        setIsLoading(true);
         
-        characterResponse.data.characters.forEach(character => {
-          const slotId = character.slotId || 1;
-          if (slotId >= 1 && slotId <= 3) {
-            updatedSlots[slotId - 1] = {
-              ...updatedSlots[slotId - 1],
-              character: character,
-              hasData: true
-            };
-          }
-        });
+        // URL'den parametreleri al
+        const params = new URLSearchParams(location.search);
+        const slotFromUrl = params.get('slot');
+        const saveIdFromUrl = params.get('saveId');
         
-        setAvailableSlots(updatedSlots);
-      }
-      
-      // Kayıtlı oyunları getir
-      const savesResponse = await apiHelper.get('/api/game/saved-games');
-      
-      if (savesResponse.success && savesResponse.data.savedGames) {
-        // Her slot için otomatik kayıtları kontrol et
-        const autoSaves = savesResponse.data.savedGames.filter(game => game.isAutoSave);
+        // URL'den veya state'den slot bilgisini al
+        const saveSlot = slotFromUrl ? parseInt(slotFromUrl) : 
+                      location.state?.saveSlot ? location.state.saveSlot : 1;
+                      
+        // URL'den veya state'den saveId bilgisini al
+        const saveId = saveIdFromUrl ? parseInt(saveIdFromUrl) : 
+                     location.state?.saveId ? location.state.saveId : null;
         
-        const updatedSlots = [...availableSlots];
-        autoSaves.forEach(save => {
-          const slotId = save.slotId || 1;
-          if (slotId >= 1 && slotId <= 3) {
-            updatedSlots[slotId - 1] = {
-              ...updatedSlots[slotId - 1],
-              autoSave: save,
-              hasData: true
-            };
-          }
-        });
+        setSelectedSaveSlot(saveSlot);
         
-        setAvailableSlots(updatedSlots);
-      }
-      
-    } catch (error) {
-      console.error("Karakter ve kayıt verilerini yükleme hatası:", error);
-      setError("Karakter verilerine erişilemiyor. Lütfen daha sonra tekrar deneyin.");
-    } finally {
-      setIsLoading(false);
-      setAuthChecked(true);
-    }
-  };
-  
-  // URL state'inden gelen oyun verisini yükle
-  const loadGameFromState = async (gameInfo) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Oyun verilerini yükle
-      const response = await apiHelper.get(`/api/game/load-game/${gameInfo.id}`);
-      
-      if (response.success) {
-        const saveData = response.data.saveData;
-        
-        // Karakter ve parti verilerini kontrol et
-        if (!saveData.character) {
-          setError(`Kayıt ID: ${gameInfo.id} - Karakter verisi eksik`);
-          setIsLoading(false);
+        // Token kontrolü
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login', { state: { returnUrl: `/single-player?slot=${saveSlot}` } });
           return;
         }
         
-        // Karakter, parti ve oyun verilerini ayarla
-        setCharacter(saveData.character);
-        setParty(saveData.party);
-        setGameData(saveData.gameData);
-        setHasCharacter(true);
-        
-        // Verileri localStorage'a da kaydet
-        localStorage.setItem('characterData', JSON.stringify(saveData.character));
-        if (saveData.party) {
-          localStorage.setItem('partyData', JSON.stringify(saveData.party));
-        }
-        
-        // Slot bilgisi varsa al
-        const slotId = saveData.character.slotId || 1;
-        setSelectedSlot(slotId);
-        setShowSlotSelection(false);
-        
-        // Oyun durumuna göre başlangıç ekranını ayarla ya da GameDashboard'a yönlendir
-        if (saveData.gameData.gameState === 'active' || saveData.gameData.gameState === 'paused') {
-          // GameDashboard'a yönlendir ve gerekli verileri aktar
-          navigate('/game-dashboard', { 
-            state: { 
-              character: saveData.character,
-              party: saveData.party,
-              gameData: saveData.gameData,
-              saveId: gameInfo.id,
-              slotId: slotId
-            }
-          });
-        } else {
-          setGameStarted(false);
-          setGamePaused(false);
-        }
-      } else {
-        console.error("Oyun yükleme başarısız:", response.message);
-        setError("Oyun yüklenirken bir hata oluştu: " + response.message);
-      }
-    } catch (error) {
-      console.error("Oyun yükleme hatası:", error);
-      setError("Sunucu bağlantı hatası. Lütfen daha sonra tekrar deneyin.");
-    } finally {
-      setIsLoading(false);
-      setAuthChecked(true);
-    }
-  };
-  
-  // Slot seçildiğinde çağrılacak fonksiyon
-  const handleSlotSelect = async (slotId) => {
-    setSelectedSlot(slotId);
-    
-    // Seçilen slotta karakter var mı kontrol et
-    const selectedSlotData = availableSlots[slotId - 1];
-    
-    if (selectedSlotData.hasData) {
-      // Bu slotta data varsa, otomatik kayıt varsa göster
-      if (selectedSlotData.autoSave) {
-        setAutoSave(selectedSlotData.autoSave);
-      }
-      
-      // Karakter verisi varsa, karakteri yükle
-      if (selectedSlotData.character) {
-        setCharacter(selectedSlotData.character);
-        setHasCharacter(true);
-        
-        // Karakter ile ilişkili parti verilerini kontrol et
-        try {
-          const partyResponse = await apiHelper.get(`/api/game/get-party/${selectedSlotData.character.id}`);
+        // Karakter kontrolü
+        const characterResponse = await apiHelper.get('/api/game/get-character');
+        if (characterResponse.success && characterResponse.data.character) {
+          setCharacter(characterResponse.data.character);
+          setHasCharacter(true);
+          
+          // Parti kontrolü
+          const partyResponse = await apiHelper.get('/api/game/get-party');
           if (partyResponse.success && partyResponse.data.party) {
             setParty(partyResponse.data.party);
-          } else {
-            setParty(null);
           }
-        } catch (error) {
-          console.error("Parti verisi yükleme hatası:", error);
-          setParty(null);
+        } else {
+          setHasCharacter(false);
         }
-      }
-    } else {
-      // Slot boşsa karakter oluşturmaya yönlendir
-      setHasCharacter(false);
-      setCharacter(null);
-      setParty(null);
-    }
-    
-    setShowSlotSelection(false);
-  };
-  
-  // Otomatik kaydı yükle
-  const loadAutoSave = async () => {
-    if (!autoSave) return;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Otomatik kaydı getir
-      const response = await apiHelper.get(`/api/game/load-game/${autoSave.id}`);
-      
-      if (response.success) {
-        const saveData = response.data.saveData;
         
-        // Karakter verilerini kontrol et
-        if (!saveData.character) {
-          setError("Otomatik kayıtta karakter verisi eksik");
-          setIsLoading(false);
+        // Belirli bir kayıt yüklenecekse
+        if (saveId) {
+          navigate(`/game-dashboard?slot=${saveSlot}&saveId=${saveId}`);
           return;
         }
         
-        // Slot bilgisini kontrol et
-        const slotId = saveData.character.slotId || selectedSlot;
-        
-        // Karakter ve parti verilerini localStorage'a kaydet
-        localStorage.setItem('characterData', JSON.stringify(saveData.character));
-        if (saveData.party) {
-          localStorage.setItem('partyData', JSON.stringify(saveData.party));
+        // Otomatik kayıtları kontrol et
+        const savedGamesResponse = await apiHelper.get('/api/game/saved-games');
+        if (savedGamesResponse.success && savedGamesResponse.data.savedGames?.length > 0) {
+          const autoSaves = savedGamesResponse.data.savedGames.filter(
+            save => save.isAutoSave && save.saveSlot === saveSlot
+          );
+          
+          if (autoSaves.length > 0) {
+            setAutoSave(autoSaves[0]);
+          }
         }
         
-        // GameDashboard'a yönlendir
-        navigate('/game-dashboard', { 
-          state: { 
-            character: saveData.character,
-            party: saveData.party,
-            gameData: saveData.gameData,
-            saveId: autoSave.id,
-            slotId: slotId
-          }
-        });
-      } else {
-        console.error("Otomatik kayıt yükleme başarısız:", response.message);
-        setError("Oyun yüklenirken bir hata oluştu: " + response.message);
+      } catch (error) {
+        console.error("Oyun hazırlama hatası:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Otomatik kayıt yükleme hatası:", error);
-      setError("Sunucu bağlantı hatası. Lütfen daha sonra tekrar deneyin.");
-    } finally {
-      setIsLoading(false);
-      setAutoSave(null); // Otomatik kayıt göstergesini kaldır
-    }
+    };
+    
+    prepareGame();
+  }, [location, navigate]);
+  
+  // Otomatik kaydı yükle
+  const loadAutoSave = () => {
+    if (!autoSave) return;
+    
+    // Game Dashboard sayfasına yönlendir
+    navigate(`/game-dashboard?slot=${selectedSaveSlot}&saveId=${autoSave.id}`);
   };
   
-  // Yeni oyun başlat - Yeni karakter oluşturmaya yönlendir
+  // Yeni oyun başlat
   const startNewGame = () => {
-    // Mevcut karakter ve parti verilerini temizle
-    setCharacter(null);
-    setParty(null);
-    setHasCharacter(false);
+    // Otomatik kayıt göstergesini kaldır
     setAutoSave(null);
     
-    // LocalStorage'ı temizle
-    localStorage.removeItem('characterData');
-    localStorage.removeItem('partyData');
-    
-    // Karakter oluşturma sayfasına yönlendir
-    navigate('/character-creator', { state: { slotId: selectedSlot } });
-  };
-  
-  // Yeni karakter oluştur
-  const createNewCharacter = () => {
-    // Slot bilgisini de geçir
-    navigate('/character-creator', { state: { slotId: selectedSlot } });
-  };
-  
-  // Oyunu başlat
-  const startGame = () => {
-    // Karakter ve parti verilerini kontrol et
-    if (!character) {
-      setError("Oyunu başlatmak için karakter verisi gerekiyor");
-      return;
-    }
-    
-    // Oyun verisini güncelle
-    const updatedGameData = {
-      ...gameData,
-      gameState: 'active',
-      lastSave: new Date().toISOString()
-    };
-    
-    setGameData(updatedGameData);
-    
-    // GameDashboard sayfasına yönlendir
-    navigate('/game-dashboard', { 
-      state: { 
-        character: character,
-        party: party,
-        gameData: updatedGameData,
-        slotId: selectedSlot
-      }
-    });
-  };
-  
-  // Oyunu durdur
-  const pauseGame = () => {
-    // Durdurulmuş/devam edilmiş durumunu değiştir
-    const isPaused = !gamePaused;
-    
-    // Oyun verisini güncelle
-    const updatedGameData = {
-      ...gameData,
-      gameState: isPaused ? 'paused' : 'active',
-      lastSave: new Date().toISOString()
-    };
-    
-    setGameData(updatedGameData);
-    setGamePaused(isPaused);
-    
-    // Otomatik kayıt güncelle
-    updateAutoSave(updatedGameData);
-  };
-  
-  // Oyunu kaydet
-  const saveGame = async () => {
-    try {
-      // Oyunu manuel olarak kaydet (yeni bir slot'a)
-      const saveSlot = 2; // Manuel kayıtlar için 2 ve üstü slotları kullanıyoruz
-      
-      const updatedGameData = {
-        ...gameData,
-        lastSave: new Date().toISOString()
-      };
-      
-      const response = await apiHelper.post('/api/game/save-game', {
-        gameData: updatedGameData,
-        saveName: `${character.fullName}'in Oyunu`,
-        saveSlot,
-        slotId: selectedSlot
-      });
-      
-      if (response.success) {
-        alert('Oyun başarıyla kaydedildi!');
-        setGameData(updatedGameData);
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      console.error('Oyun kaydedilirken hata:', error);
-      alert('Oyun kaydedilirken bir hata oluştu.');
-    }
-  };
-  
-  // Otomatik kayıt güncelleme
-  const updateAutoSave = async (updatedGameData) => {
-    try {
-      const response = await apiHelper.post('/api/game/update-auto-save', {
-        gameData: updatedGameData,
-        slotId: selectedSlot
-      });
-      
-      if (!response.success) {
-        console.error("Otomatik kayıt güncellenemedi:", response.message);
-      }
-    } catch (error) {
-      console.error("Otomatik kayıt güncelleme hatası:", error);
-    }
+    // Game Dashboard sayfasına yönlendir (yeni oyun)
+    navigate(`/game-dashboard?slot=${selectedSaveSlot}`);
   };
   
   // Ana menüye dön
   const returnToMenu = () => {
     navigate('/');
   };
-
-  // Slot seçim ekranını oluştur
-  const renderSlotSelection = () => {
-    return (
-      <GameOverlay>
-        <OverlayText>Oyun Slotu Seçin</OverlayText>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '400px' }}>
-          {availableSlots.map((slot) => (
-            <div 
-              key={slot.id}
-              style={{
-                background: 'rgba(0, 30, 60, 0.7)',
-                padding: '1rem',
-                borderRadius: '8px',
-                border: '1px solid rgba(0, 200, 255, 0.3)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-              }}
-              onClick={() => handleSlotSelect(slot.id)}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, color: 'rgba(0, 200, 255, 0.8)' }}>{slot.name}</h3>
-                {slot.hasData ? (
-                  <span style={{ 
-                    background: 'rgba(0, 200, 255, 0.3)', 
-                    padding: '0.25rem 0.5rem', 
-                    borderRadius: '4px',
-                    fontSize: '0.8rem'
-                  }}>
-                    Kayıt Var
-                  </span>
-                ) : (
-                  <span style={{ 
-                    background: 'rgba(100, 100, 100, 0.3)', 
-                    padding: '0.25rem 0.5rem', 
-                    borderRadius: '4px',
-                    fontSize: '0.8rem'
-                  }}>
-                    Boş
-                  </span>
-                )}
-              </div>
-              
-              {slot.hasData && slot.character && (
-                <div style={{ marginTop: '0.75rem' }}>
-                  <div><strong>Karakter:</strong> {slot.character.fullName}</div>
-                  {slot.autoSave && (
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.25rem' }}>
-                      Son Oynama: {new Date(slot.autoSave.updatedAt).toLocaleString('tr-TR')}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </GameOverlay>
-    );
-  };
-
-  // Karakter oluşturma ekranını oluştur
-  const renderCreateCharacter = () => {
-    return (
-      <GameOverlay>
-        <OverlayText>Karakter Bulunamadı</OverlayText>
-        <p style={{ fontSize: '1.2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-          Bu slot için bir karakter oluşturmanız gerekmektedir.
-        </p>
-        <ButtonsContainer>
-          <Button onClick={createNewCharacter}>Yeni Karakter Oluştur</Button>
-          <Button onClick={() => setShowSlotSelection(true)}>
-            Başka Slot Seç
-          </Button>
-        </ButtonsContainer>
-      </GameOverlay>
-    );
+  
+  // Yeni karakter oluştur
+  const createNewCharacter = () => {
+    navigate('/character-creator');
   };
   
   if (isLoading) {
@@ -650,27 +275,22 @@ const SinglePlayer = () => {
     <GameContainer>
       <GameHeader>
         <GameTitle>Tek Oyunculu Mod</GameTitle>
-        {character && gameStarted && (
-          <div>
-            {character.fullName} | Skor: {gameData.score} | Seviye: {gameData.level}
-          </div>
-        )}
       </GameHeader>
       
       <GameCanvas>
-        {/* Hata mesajları */}
-        {error && (
-          <ErrorText>{error}</ErrorText>
+        {/* Karakter bulunamadığında */}
+        {!hasCharacter && (
+          <GameOverlay>
+            <OverlayText>Karakter Bulunamadı</OverlayText>
+            <p style={{ fontSize: '1.2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+              Oyunu oynamak için bir karakter oluşturmanız gerekmektedir.
+            </p>
+            <Button onClick={createNewCharacter}>Yeni Karakter Oluştur</Button>
+          </GameOverlay>
         )}
         
-        {/* Slot seçim ekranı */}
-        {authChecked && showSlotSelection && renderSlotSelection()}
-        
-        {/* Karakter bulunamadığında */}
-        {authChecked && !showSlotSelection && !hasCharacter && !error && renderCreateCharacter()}
-        
         {/* Otomatik kayıt varsa göster */}
-        {authChecked && !showSlotSelection && hasCharacter && autoSave && !gameStarted && !error && (
+        {hasCharacter && autoSave && (
           <GameOverlay>
             <OverlayText>Kayıtlı Oyun Bulundu</OverlayText>
             <CharacterInfoCard>
@@ -703,14 +323,13 @@ const SinglePlayer = () => {
             
             <ButtonsContainer>
               <Button onClick={loadAutoSave}>Kayıtlı Oyunu Yükle</Button>
-              <Button onClick={startNewGame}>Yeni Karakter Oluştur</Button>
-              <Button onClick={() => setShowSlotSelection(true)}>Başka Slot Seç</Button>
+              <Button onClick={startNewGame}>Yeni Oyun Başlat</Button>
             </ButtonsContainer>
           </GameOverlay>
         )}
         
-        {/* Karakteri olan ama henüz oyuna başlamamış kullanıcılar için */}
-        {authChecked && !showSlotSelection && hasCharacter && !autoSave && !gameStarted && !error && (
+        {/* Karakteri olan ama otomatik kaydı olmayan kullanıcılar için */}
+        {hasCharacter && !autoSave && (
           <GameOverlay>
             <OverlayText>Oyunu Başlatmak İçin Hazır mısın?</OverlayText>
             
@@ -719,104 +338,57 @@ const SinglePlayer = () => {
                 Karakter Bilgileri
               </h3>
               
-              {character ? (
-                <>
-                  <CharacterDetail>
-                    <CharacterLabel>İsim:</CharacterLabel>
-                    <span>{character.fullName}</span>
-                  </CharacterDetail>
-                  
-                  <CharacterDetail>
-                    <CharacterLabel>Yaş:</CharacterLabel>
-                    <span>{character.age}</span>
-                  </CharacterDetail>
-                  
-                  <CharacterDetail>
-                    <CharacterLabel>Meslek:</CharacterLabel>
-                    <span>{character.profession}</span>
-                  </CharacterDetail>
-                  
-                  <CharacterDetail>
-                    <CharacterLabel>İdeoloji:</CharacterLabel>
-                    <span>{character.ideology ? 
-                      (character.ideology.overallPosition < 20 ? "Sol" :
-                        character.ideology.overallPosition < 40 ? "Merkez Sol" :
-                        character.ideology.overallPosition < 60 ? "Merkez" :
-                        character.ideology.overallPosition < 80 ? "Merkez Sağ" : "Sağ") 
-                      : "Bilinmiyor"}</span>
-                  </CharacterDetail>
-                  
-                  {party && (
-                    <CharacterDetail>
-                      <CharacterLabel>Parti:</CharacterLabel>
-                      <span>
-                        <PartyBadge color={party.colorId}>
-                          {party.shortName}
-                        </PartyBadge>
-                        {party.name}
-                      </span>
-                    </CharacterDetail>
-                  )}
-                </>
-              ) : (
-                <div>Karakter bilgileri yüklenemedi. Lütfen karakter oluşturun.</div>
+              <CharacterDetail>
+                <CharacterLabel>İsim:</CharacterLabel>
+                <span>{character.fullName}</span>
+              </CharacterDetail>
+              
+              <CharacterDetail>
+                <CharacterLabel>Yaş:</CharacterLabel>
+                <span>{character.age}</span>
+              </CharacterDetail>
+              
+              <CharacterDetail>
+                <CharacterLabel>Meslek:</CharacterLabel>
+                <span>{character.profession}</span>
+              </CharacterDetail>
+              
+              <CharacterDetail>
+                <CharacterLabel>İdeoloji:</CharacterLabel>
+                <span>{character.ideology ? 
+                  (character.ideology.overallPosition < 35 ? "Sol" :
+                    character.ideology.overallPosition < 48 ? "Merkez Sol" :
+                    character.ideology.overallPosition < 52 ? "Merkez" :
+                    character.ideology.overallPosition < 65 ? "Merkez Sağ" : "Sağ") 
+                  : "Bilinmiyor"}</span>
+              </CharacterDetail>
+              
+              {party && (
+                <CharacterDetail>
+                  <CharacterLabel>Parti:</CharacterLabel>
+                  <span>
+                    <PartyBadge color={party.colorId}>
+                      {party.shortName}
+                    </PartyBadge>
+                    {party.name}
+                  </span>
+                </CharacterDetail>
               )}
             </CharacterInfoCard>
             
             {/* Parti kurma veya oyunu başlatma seçenekleri */}
-            <ButtonsContainer>
-              {character && !party && (
-                <Button onClick={() => navigate('/party-creator', { state: { slotId: selectedSlot } })}>
-                  Parti Kur
-                </Button>
-              )}
-              <Button onClick={character ? startGame : createNewCharacter}>
-                {character ? 'Oyunu Başlat' : 'Karakter Oluştur'}
-              </Button>
-              <Button onClick={startNewGame}>Yeni Karakter Oluştur</Button>
-              <Button onClick={() => setShowSlotSelection(true)}>Başka Slot Seç</Button>
-            </ButtonsContainer>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              {!party ? (
+                <Button onClick={() => navigate('/party-creator')}>Parti Kur</Button>
+              ) : null}
+              <Button onClick={startNewGame}>Oyunu Başlat</Button>
+            </div>
           </GameOverlay>
-        )}
-        
-        {/* Oyun duraklatıldığında */}
-        {gamePaused && (
-          <GameOverlay>
-            <OverlayText>Oyun Duraklatıldı</OverlayText>
-            <ButtonsContainer>
-              <Button onClick={pauseGame}>Devam Et</Button>
-              <Button onClick={saveGame}>Kaydet</Button>
-            </ButtonsContainer>
-          </GameOverlay>
-        )}
-        
-        {/* Oyun canvas'ı buraya gelecek */}
-        {gameStarted && !gamePaused && (
-          <div style={{ fontSize: '1.5rem', textAlign: 'center' }}>
-            <h3>Aktif Oyun</h3>
-            {party && (
-              <div>
-                <PartyBadge color={party.colorId}>
-                  {party.shortName}
-                </PartyBadge>
-                {party.name} partisinin lideri olarak ülke yönetimini ele geçirmeye çalışıyorsunuz.
-              </div>
-            )}
-            <p>Oyun modülleri entegrasyonu devam ediyor...</p>
-          </div>
         )}
       </GameCanvas>
       
       <GameControls>
         <Button onClick={returnToMenu}>Ana Menü</Button>
-        {gameStarted && (
-          <Button onClick={pauseGame}>
-            {gamePaused ? 'Devam Et' : 'Duraklat'}
-          </Button>
-        )}
-        {gameStarted && !gamePaused && (
-          <Button onClick={saveGame}>Oyunu Kaydet</Button>
-        )}
       </GameControls>
     </GameContainer>
   );

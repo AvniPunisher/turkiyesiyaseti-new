@@ -1,9 +1,11 @@
-// src/components/GameScreen/GameScreen.js
+// [1] Gerekli kütüphaneler
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import CountryManagementPanel from '../CountryManagementPanel/CountryManagementPanel';
+import apiHelper from '../../services/apiHelper';
 
+// [2] Stil bileşenleri ve UI yapısı - Kullanıcıdan
 const GameContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -69,7 +71,6 @@ const MenuButton = styled.button`
   font-family: 'Orbitron', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
-  
   &:hover {
     background: rgba(0, 100, 200, 0.3);
   }
@@ -107,7 +108,6 @@ const Button = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: 'Orbitron', sans-serif;
-  
   &:hover {
     background: rgba(0, 150, 255, 0.7);
   }
@@ -115,298 +115,215 @@ const Button = styled.button`
 
 const GameScreen = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [slotId, setSlotId] = useState(1);
+  const [character, setCharacter] = useState(null);
+  const [party, setParty] = useState(null);
+  const [gameData, setGameData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [offlineMode, setOfflineMode] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [gamePaused, setGamePaused] = useState(false);
   const [showCountryPanel, setShowCountryPanel] = useState(false);
-  
-  // Simüle edilmiş oyun verileri
-  const [gameData, setGameData] = useState({
-    date: "15 Haziran 2025",
-    month: 6,
-    year: 2025,
-    popularity: 42,
-    partyFunds: 7500000,
-    seatCount: 120,
-    totalSeats: 600
-  });
-  
-  // Tab içeriklerini hazırla
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <TabContent>
-            <h2>Ana Gösterge Paneli</h2>
-            <p>Hoş geldiniz! Bu ekrandan partinizin ve ülkenin genel durumunu takip edebilirsiniz.</p>
-            
-            <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
-              <div style={{ 
-                background: 'rgba(0, 40, 80, 0.5)', 
-                padding: '15px', 
-                borderRadius: '8px',
-                border: '1px solid rgba(0, 200, 255, 0.3)'
-              }}>
-                <h3 style={{ color: 'rgba(0, 200, 255, 0.8)', marginTop: 0 }}>Parti Durumu</h3>
-                <div style={{ marginTop: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span>Popülerlik:</span>
-                    <span>{gameData.popularity}%</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span>Parti Fonu:</span>
-                    <span>{gameData.partyFunds.toLocaleString()} ₺</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Meclis Koltukları:</span>
-                    <span>{gameData.seatCount}/{gameData.totalSeats}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{ 
-                background: 'rgba(0, 40, 80, 0.5)', 
-                padding: '15px', 
-                borderRadius: '8px',
-                border: '1px solid rgba(0, 200, 255, 0.3)'
-              }}>
-                <h3 style={{ color: 'rgba(0, 200, 255, 0.8)', marginTop: 0 }}>Ülke Durumu</h3>
-                <div style={{ marginTop: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span>Ekonomik Durum:</span>
-                    <span style={{ color: 'rgb(255, 180, 100)' }}>Orta</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span>İstihdam:</span>
-                    <span>%63.8</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Gelecek Seçim:</span>
-                    <span>14 ay</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => setShowCountryPanel(true)}
-                  style={{ 
-                    marginTop: '15px',
-                    background: 'rgba(0, 100, 200, 0.5)',
-                    border: 'none',
-                    padding: '8px 12px',
-                    borderRadius: '4px',
-                    color: 'white',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Ülke Detaylarını Görüntüle
-                </button>
-              </div>
-            </div>
-            
-            <div style={{ 
-              marginTop: '20px', 
-              background: 'rgba(0, 40, 80, 0.5)', 
-              padding: '15px', 
-              borderRadius: '8px',
-              border: '1px solid rgba(0, 200, 255, 0.3)'
-            }}>
-              <h3 style={{ color: 'rgba(0, 200, 255, 0.8)', marginTop: 0 }}>Son Olaylar</h3>
-              <div style={{ marginTop: '10px' }}>
-                <div style={{ padding: '10px', borderBottom: '1px solid rgba(0, 200, 255, 0.2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: 'bold' }}>Bütçe Görüşmeleri Başladı</span>
-                    <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)' }}>2 gün önce</span>
-                  </div>
-                  <p style={{ margin: '5px 0 0', fontSize: '0.9rem' }}>
-                    Meclis'te yeni bütçe görüşmeleri başladı. Tartışmalar devam ediyor.
-                  </p>
-                </div>
-                
-                <div style={{ padding: '10px', borderBottom: '1px solid rgba(0, 200, 255, 0.2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: 'bold' }}>Merkez Bankası Faiz Kararı</span>
-                    <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)' }}>5 gün önce</span>
-                  </div>
-                  <p style={{ margin: '5px 0 0', fontSize: '0.9rem' }}>
-                    Merkez Bankası politika faizini %35'te sabit tuttu.
-                  </p>
-                </div>
-                
-                <div style={{ padding: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: 'bold' }}>Kamuoyu Yoklaması Sonuçları</span>
-                    <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)' }}>1 hafta önce</span>
-                  </div>
-                  <p style={{ margin: '5px 0 0', fontSize: '0.9rem' }}>
-                    Yeni yapılan kamuoyu yoklamasında partiniz %2 oy oranı kaybetti.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </TabContent>
-        );
-        
-      case 'party':
-        return (
-          <TabContent>
-            <h2>Parti Yönetimi</h2>
-            <p>Partinizin yapısını, üyelerini ve politikalarını bu ekrandan yönetebilirsiniz.</p>
-            {/* Parti yönetimi içeriği buraya gelecek */}
-          </TabContent>
-        );
-        
-      case 'campaign':
-        return (
-          <TabContent>
-            <h2>Seçim Kampanyası</h2>
-            <p>Seçim kampanyalarını yönetmek ve stratejiler belirlemek için bu ekranı kullanabilirsiniz.</p>
-            {/* Kampanya içeriği buraya gelecek */}
-          </TabContent>
-        );
-        
-      case 'legislation':
-        return (
-          <TabContent>
-            <h2>Yasama Faaliyetleri</h2>
-            <p>Mecliste sunulan ve oylanan yasa teklifleri burada listelenir.</p>
-            {/* Yasama içeriği buraya gelecek */}
-          </TabContent>
-        );
-        
-      case 'media':
-        return (
-          <TabContent>
-            <h2>Medya ve Halkla İlişkiler</h2>
-            <p>Medya etkinlikleri, demeçler ve halkla ilişkiler stratejileri burada yönetilir.</p>
-            {/* Medya içeriği buraya gelecek */}
-          </TabContent>
-        );
-        
-      case 'relations':
-        return (
-          <TabContent>
-            <h2>Siyasi İlişkiler</h2>
-            <p>Diğer partiler, kanaat önderleri ve sivil toplum kuruluşlarıyla ilişkilerinizi buradan yönetebilirsiniz.</p>
-            {/* İlişkiler içeriği buraya gelecek */}
-          </TabContent>
-        );
-        
-      case 'elections':
-        return (
-          <TabContent>
-            <h2>Seçim Sonuçları ve Analizler</h2>
-            <p>Geçmiş seçim sonuçları ve analizler burada gösterilir.</p>
-            {/* Seçim içeriği buraya gelecek */}
-          </TabContent>
-        );
-        
-      default:
-        return <div>İçerik bulunamadı</div>;
+
+  useEffect(() => {
+    const loadSlotData = async () => {
+      try {
+        setIsLoading(true);
+        const stateData = location.state || {};
+        const slotIdFromState = stateData.slotId || 1;
+        setSlotId(slotIdFromState);
+
+        const isNewGame = stateData.newGame || false;
+        const isOfflineMode = stateData.offlineMode || false;
+        setOfflineMode(isOfflineMode);
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert('Oturum bilginiz bulunamadı. Lütfen giriş yapın.');
+          navigate('/login', { state: { returnUrl: '/single-player' } });
+          return;
+        }
+
+        if (isNewGame && stateData.character && stateData.party) {
+          setCharacter(stateData.character);
+          setParty(stateData.party);
+
+          const newGameData = createInitialGameData(stateData.character, stateData.party);
+          setGameData(newGameData);
+          saveGameDataToLocalStorage(slotIdFromState, newGameData, stateData.character, stateData.party);
+
+          if (!isOfflineMode) {
+            try {
+              await apiHelper.post('/api/game/update-auto-save', {
+                gameData: newGameData,
+                slotId: slotIdFromState
+              });
+            } catch (error) {
+              console.error('API kayıt hatası:', error);
+              setOfflineMode(true);
+            }
+          }
+        } else {
+          const savedData = loadGameDataFromLocalStorage(slotIdFromState);
+          if (savedData) {
+            setCharacter(savedData.character);
+            setParty(savedData.party);
+            setGameData(savedData.gameData);
+          } else {
+            alert('Kayıtlı veri bulunamadı.');
+            navigate('/');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Veri yükleme hatası:', error);
+        alert('Veri yüklenemedi.');
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSlotData();
+  }, [location, navigate]);
+
+  const createInitialGameData = (character, party) => {
+    return {
+      currentDate: '1 Ocak 2025',
+      currentWeek: 1,
+      currentMonth: 1,
+      currentYear: 2025,
+      characterId: character.id || Date.now(),
+      partyId: party.id || Date.now(),
+      popularity: 30,
+      funds: 1500000,
+      supporters: 0,
+      seats: 0,
+      totalSeats: 600,
+      achievements: [],
+      completedEvents: [],
+      relationships: {},
+      lastSave: new Date().toISOString()
+    };
+  };
+
+  const saveGameDataToLocalStorage = (slotId, gameData, character, party) => {
+    try {
+      const saveData = {
+        gameData,
+        character,
+        party,
+        lastSaved: new Date().toISOString()
+      };
+      localStorage.setItem(`gameData_slot_${slotId}`, JSON.stringify(saveData));
+    } catch (error) {
+      console.error('Yerel kayıt hatası:', error);
     }
   };
-  
-  const togglePause = () => {
-    setGamePaused(!gamePaused);
+
+  const loadGameDataFromLocalStorage = (slotId) => {
+    try {
+      const savedData = localStorage.getItem(`gameData_slot_${slotId}`);
+      return savedData ? JSON.parse(savedData) : null;
+    } catch (error) {
+      console.error('Yerel yükleme hatası:', error);
+      return null;
+    }
   };
-  
-  const saveGame = () => {
-    alert('Oyun kaydedildi!');
+
+  const saveGame = async () => {
+    const currentGameData = { ...gameData, lastSave: new Date().toISOString() };
+    saveGameDataToLocalStorage(slotId, currentGameData, character, party);
+    if (!offlineMode) {
+      try {
+        await apiHelper.post('/api/game/save-game', {
+          gameData: currentGameData,
+          saveName: `${character?.fullName} - ${party?.name} - ${currentGameData.currentDate}`,
+          saveSlot: slotId,
+          slotId
+        });
+        alert('Oyun kaydedildi.');
+      } catch (error) {
+        console.error('API kaydetme hatası:', error);
+        alert('Yalnızca yerel olarak kaydedildi.');
+        setOfflineMode(true);
+      }
+    } else {
+      alert('Yerel olarak kaydedildi.');
+    }
+    setGameData(currentGameData);
   };
-  
+
   const returnToMenu = () => {
     navigate('/');
   };
 
+  const togglePause = () => {
+    setGamePaused(!gamePaused);
+  };
+
+  const renderTabContent = () => {
+    if (!gameData) return <div>Veri yükleniyor...</div>;
+    return (
+      <TabContent>
+        <h2>Ana Gösterge Paneli</h2>
+        <p>Popülarite: %{gameData.popularity}</p>
+        <p>Fon: {gameData.funds.toLocaleString()} ₺</p>
+        <p>Koltuk: {gameData.seats}/{gameData.totalSeats}</p>
+      </TabContent>
+    );
+  };
+
+  if (isLoading) {
+    return <div>Yükleniyor...</div>;
+  }
+
   return (
     <GameContainer>
       <GameHeader>
-        <GameTitle>Türkiye Siyaset Simülasyonu</GameTitle>
+        <GameTitle>{character?.fullName || 'Karakter'} - {party?.shortName || 'Parti'}</GameTitle>
         <HeaderControls>
-          <InfoText>Tarih: {gameData.date}</InfoText>
-          <InfoText style={{ marginLeft: '20px' }}>Popülerlik: {gameData.popularity}%</InfoText>
-          <InfoText style={{ marginLeft: '20px' }}>Parti Fonu: {gameData.partyFunds.toLocaleString()} ₺</InfoText>
+          <InfoText>Tarih: {gameData?.currentDate}</InfoText>
+          <InfoText>Popülerlik: %{gameData?.popularity}</InfoText>
+          <InfoText>Fon: {gameData?.funds.toLocaleString()} ₺</InfoText>
+          {offlineMode && <InfoText>Çevrimdışı Mod</InfoText>}
         </HeaderControls>
       </GameHeader>
-      
+
       <GameCanvas>
         <SideMenu>
-          <MenuButton 
-            active={activeTab === 'dashboard'} 
-            onClick={() => setActiveTab('dashboard')}
-          >
-            Ana Sayfa
-          </MenuButton>
-          <MenuButton 
-            active={activeTab === 'party'} 
-            onClick={() => setActiveTab('party')}
-          >
-            Parti Yönetimi
-          </MenuButton>
-          <MenuButton 
-            active={activeTab === 'campaign'} 
-            onClick={() => setActiveTab('campaign')}
-          >
-            Kampanya
-          </MenuButton>
-          <MenuButton 
-            active={activeTab === 'legislation'} 
-            onClick={() => setActiveTab('legislation')}
-          >
-            Yasama
-          </MenuButton>
-          <MenuButton 
-            active={activeTab === 'media'} 
-            onClick={() => setActiveTab('media')}
-          >
-            Medya
-          </MenuButton>
-          <MenuButton 
-            active={activeTab === 'relations'} 
-            onClick={() => setActiveTab('relations')}
-          >
-            İlişkiler
-          </MenuButton>
-          <MenuButton 
-            active={activeTab === 'elections'} 
-            onClick={() => setActiveTab('elections')}
-          >
-            Seçimler
-          </MenuButton>
+          <MenuButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')}>Ana Sayfa</MenuButton>
         </SideMenu>
-        
         <MainContent>
           {renderTabContent()}
         </MainContent>
-        
-        {/* Ülke Yönetim Paneli */}
-        <CountryManagementPanel 
-          isOpen={showCountryPanel}
-          onClose={() => setShowCountryPanel(false)}
+        <CountryManagementPanel
+          isOpen={true}
+          onClose={() => {}}
           populationData={{
             total: 85250000,
             urban: 76725000,
             rural: 8525000,
             regions: {
-              "Marmara": 25575000,
-              "İç Anadolu": 14492500,
-              "Ege": 11085000,
-              "Akdeniz": 10997500,
-              "Karadeniz": 8100000,
-              "Güneydoğu Anadolu": 9377500,
-              "Doğu Anadolu": 5622500
+              'Marmara': 25575000,
+              'İç Anadolu': 14492500,
+              'Ege': 11085000,
+              'Akdeniz': 10997500,
+              'Karadeniz': 8100000,
+              'Güneydoğu Anadolu': 9377500,
+              'Doğu Anadolu': 5622500
             }
           }}
         />
       </GameCanvas>
-      
+
       <GameControls>
         <Button onClick={returnToMenu}>Ana Menü</Button>
         <div>
-          <Button onClick={togglePause} style={{ marginRight: '10px' }}>
-            {gamePaused ? 'Devam Et' : 'Duraklat'}
-          </Button>
-          <Button onClick={() => setGameData(prev => ({...prev, month: prev.month + 1}))}>
-            İlerle (1 Ay)
-          </Button>
+          <Button onClick={togglePause}>{gamePaused ? 'Devam Et' : 'Duraklat'}</Button>
+          <Button onClick={() => setGameData(prev => ({ ...prev, currentMonth: prev.currentMonth + 1 }))}>İlerle (1 Ay)</Button>
         </div>
         <Button onClick={saveGame}>Kaydet</Button>
       </GameControls>

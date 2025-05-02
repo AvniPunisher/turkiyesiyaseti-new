@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+const bodyParser = require('body-parser');
 const gameRoutes = require('./routes/game');
 
 // Ortam değişkenlerini yükle
@@ -15,13 +16,25 @@ const { testConnection, pool } = require('./config/db');
 // Express uygulaması
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// CORS ayarları
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://turkiyesiyaseti.net', 'https://www.turkiyesiyaseti.net'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Body parser middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Ana rota
 app.get('/', (req, res) => {
-  res.json({ message: 'Türkiye Siyaset Simülasyonu API' });
+  res.json({ 
+    message: 'Türkiye Siyaset Simülasyonu API',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Veritabanı bağlantısını test et
@@ -46,20 +59,34 @@ app.use('/api/game', gameRoutes);
 app.use('/api/character', require('./routes/character')); 
 app.use('/api/party', require('./routes/party')); 
 
+// Sağlık kontrolü endpointi
+app.get('/api/health-check', (req, res) => {
+  res.status(200).json({ 
+    success: true, 
+    message: 'API aktif', 
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // 404 hata yakalama
 app.use((req, res) => {
-  res.status(404).json({ message: 'Aradığınız sayfa bulunamadı' });
+  res.status(404).json({ 
+    success: false, 
+    message: `Endpoint bulunamadı: ${req.method} ${req.originalUrl}`,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Genel hata yakalama
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Sunucu hatası' });
-});
-
-// Sağlık kontrolü endpointi
-app.get('/api/health-check', (req, res) => {
-  res.status(200).json({ success: true, message: 'API aktif', environment: process.env.NODE_ENV });
+  console.error('Sunucu hatası:', err);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Sunucu hatası',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'İç sunucu hatası',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Tablo durumunu kontrol et
@@ -231,7 +258,9 @@ const migrateExistingData = async () => {
 };
 
 // Sunucuyu başlat
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Sunucu ${PORT} portunda çalışıyor`);
+  console.log(`Ortam: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Zaman: ${new Date().toISOString()}`);
 });

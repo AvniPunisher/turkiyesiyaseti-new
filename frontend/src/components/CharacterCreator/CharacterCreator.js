@@ -266,7 +266,7 @@ const CharacterCreator = () => {
     }
   };
   
-  // Karakter oluşturma işlemi - slot ID desteği eklendi
+  // Karakter oluşturma işlemi
   const createCharacter = async () => {
     try {
       setLoading(true);
@@ -295,7 +295,7 @@ const CharacterCreator = () => {
       };
       
       try {
-        localStorage.setItem('characterData', JSON.stringify(characterData));
+        localStorage.setItem(`characterData_slot_${slotId}`, JSON.stringify(characterData));
       } catch (e) {
         console.error("Karakter verileri localStorage'a kaydedilemedi:", e);
       }
@@ -315,13 +315,13 @@ const CharacterCreator = () => {
           // API başarısız olsa bile devam et
           console.error("API başarısız oldu, ancak devam ediyoruz:", response.message);
           alert('Karakter bilgileri kaydedildi, parti oluşturmaya devam edebilirsiniz.');
-          navigate('/party-creator', { state: { slotId: slotId } });
+          navigate('/party-creator', { state: { character: characterData, slotId: slotId } });
         }
       } catch (error) {
         // API hatası olsa bile devam et
         console.error("API hatası, ancak localStorage'a kaydettik:", error);
         alert('Sunucu bağlantısında sorun var, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.');
-        navigate('/party-creator', { state: { slotId: slotId } });
+        navigate('/party-creator', { state: { character: characterData, slotId: slotId } });
       }
     } catch (error) {
       console.error("Karakter oluşturma hatası:", error);
@@ -329,7 +329,7 @@ const CharacterCreator = () => {
       // API bağlantı hatası
       if (error.code === 'ERR_NETWORK') {
         alert("Sunucuya bağlantı kurulamadı, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
-        navigate('/party-creator', { state: { slotId: slotId } });
+        navigate('/party-creator', { state: { character: character, slotId: slotId } });
       } 
       // Token hatası
       else if (error.response && error.response.status === 401) {
@@ -341,13 +341,13 @@ const CharacterCreator = () => {
       else if (error.response && error.response.status === 500) {
         console.error("Sunucu hatası detayları:", error.response.data);
         alert("Sunucu hatası, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
-        navigate('/party-creator', { state: { slotId: slotId } });
+        navigate('/party-creator', { state: { character: character, slotId: slotId } });
       }
       // Diğer hatalar
       else {
         console.error("Hata detayları:", error.response?.data || error);
         alert("Karakter oluşturulurken bir hata oluştu, ancak yerel olarak kaydedildi. Parti oluşturmaya devam edebilirsiniz.");
-        navigate('/party-creator', { state: { slotId: slotId } });
+        navigate('/party-creator', { state: { character: character, slotId: slotId } });
       }
     } finally {
       setLoading(false);

@@ -158,17 +158,22 @@ router.get('/get-character', auth, async (req, res) => {
 // Parti oluştur veya güncelle
 router.post('/create-party', auth, async (req, res) => {
   try {
-    // Debug için logla
+    // Debug için tüm veriyi logla
     console.log('Parti oluşturma isteği alındı:', req.body);
     
     const userId = req.user.userId;
     const { party, slotId = 1 } = req.body;
     
-    if (!party || !party.name || !party.shortName || !party.colorId || !party.founderId) {
-      return res.status(400).json({ success: false, message: 'Gerekli parti bilgileri eksik' });
+    // Veri doğrulama
+    if (!party || !party.name || !party.shortName || !party.colorId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Gerekli parti bilgileri eksik',
+        requiredFields: ['name', 'shortName', 'colorId'] 
+      });
     }
     
-    // Kullanıcının karakterini kontrol et
+    // Kullanıcının karakterini slot ID'ye göre getir
     const [characters] = await pool.execute(
       'SELECT * FROM game_characters WHERE user_id = ? AND slot_id = ?',
       [userId, slotId]
@@ -177,7 +182,11 @@ router.post('/create-party', auth, async (req, res) => {
     console.log('Kullanıcı karakteri:', characters.length > 0 ? 'Bulundu' : 'Bulunamadı');
     
     if (characters.length === 0) {
-      return res.status(404).json({ success: false, message: 'Önce bir karakter oluşturmalısınız' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Önce bir karakter oluşturmalısınız',
+        slotId 
+      });
     }
     
     const characterId = characters[0].id;
@@ -222,7 +231,7 @@ router.post('/create-party', auth, async (req, res) => {
           party.shortName,
           party.colorId,
           ideologyJson,
-          party.founderId,
+          party.founderId || characterId,
           party.founderName,
           supportBaseJson,
           userId,
@@ -237,13 +246,22 @@ router.post('/create-party', auth, async (req, res) => {
         [userId, characterId, slotId]
       );
       
+      if (updatedParty.length === 0) {
+        throw new Error('Güncelleme başarılı ancak parti bilgisi alınamadı');
+      }
+      
       partyId = updatedParty[0].id;
       
       // Döndürülecek parti verisi
       const partyData = preparePartyData(updatedParty[0]);
       
       // Otomatik kayıt güncelle veya oluştur
-      await updateGameSaveWithParty(userId, characterId, partyId, slotId);
+      try {
+        await updateGameSaveWithParty(userId, characterId, partyId, slotId);
+      } catch (saveError) {
+        console.error('Otomatik kayıt hatası:', saveError);
+        // Bu hata kritik değil, devam edebiliriz
+      }
       
       return res.status(200).json({
         success: true,
@@ -254,49 +272,68 @@ router.post('/create-party', auth, async (req, res) => {
     } else {
       // Yeni parti oluştur
       console.log('Yeni parti oluşturuluyor...');
-      const [result] = await pool.execute(
-        `INSERT INTO game_parties 
-         (user_id, character_id, slot_id, name, short_name, color_id, ideology, founder_id, founder_name, support_base)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          userId,
-          characterId,
-          slotId,
-          party.name,
-          party.shortName,
-          party.colorId,
-          ideologyJson,
-          party.founderId,
-          party.founderName,
-          supportBaseJson
-        ]
-      );
-      
-      partyId = result.insertId;
-      console.log('Yeni parti oluşturuldu, ID:', partyId);
-      
-      // Yeni oluşturulan partiyi al
-      const [newParty] = await pool.execute(
-        'SELECT * FROM game_parties WHERE id = ?',
-        [partyId]
-      );
-      
-      // Döndürülecek parti verisi
-      const partyData = preparePartyData(newParty[0]);
-      
-      // Otomatik kayıt güncelle veya oluştur
-      await updateGameSaveWithParty(userId, characterId, partyId, slotId);
-      
-      return res.status(201).json({
-        success: true,
-        message: 'Parti başarıyla oluşturuldu',
-        party: partyData
-      });
+      try {
+        const [result] = await pool.execute(
+          `INSERT INTO game_parties 
+           (user_id, character_id, slot_id, name, short_name, color_id, ideology, founder_id, founder_name, support_base)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            characterId,
+            slotId,
+            party.name,
+            party.shortName,
+            party.colorId,
+            ideologyJson,
+            party.founderId || characterId,
+            party.founderName,
+            supportBaseJson
+          ]
+        );
+        
+        partyId = result.insertId;
+        console.log('Yeni parti oluşturuldu, ID:', partyId);
+        
+        // Yeni oluşturulan partiyi al
+        const [newParty] = await pool.execute(
+          'SELECT * FROM game_parties WHERE id = ?',
+          [partyId]
+        );
+        
+        if (newParty.length === 0) {
+          throw new Error('Parti oluşturuldu ancak bilgisi alınamadı');
+        }
+        
+        // Döndürülecek parti verisi
+        const partyData = preparePartyData(newParty[0]);
+        
+        // Otomatik kayıt güncelle veya oluştur
+        try {
+          await updateGameSaveWithParty(userId, characterId, partyId, slotId);
+        } catch (saveError) {
+          console.error('Otomatik kayıt hatası:', saveError);
+          // Bu hata kritik değil, devam edebiliriz
+        }
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Parti başarıyla oluşturuldu',
+          party: partyData
+        });
+      } catch (dbError) {
+        console.error('Veritabanı hatası:', dbError);
+        throw new Error(`Veritabanı hatası: ${dbError.message}`);
+      }
     }
     
   } catch (error) {
     console.error('Parti oluşturma hatası:', error);
-    res.status(500).json({ success: false, message: 'Sunucu hatası: ' + error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Sunucu hatası: ' + error.message,
+      error: error.toString(),
+      stack: error.stack
+    });
   }
 });
 

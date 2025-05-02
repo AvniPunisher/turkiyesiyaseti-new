@@ -1,6 +1,6 @@
 // src/components/MainMenu.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
 
@@ -84,9 +84,11 @@ const Loading = styled.div`
 
 const MainMenu = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(1);
   
   useEffect(() => {
     // Token kontrolü
@@ -97,6 +99,17 @@ const MainMenu = () => {
       setLoading(false);
     }
   }, []);
+  
+  // Parti oluşturma başarı mesajı için
+  useEffect(() => {
+    if (location.state?.partyCreated) {
+      // Parti oluşturma işlemi tamamlandığında başarı mesajı göster
+      alert('Karakter ve parti oluşturma işlemi tamamlandı! Ana menüden oyunu başlatabilirsiniz.');
+      
+      // Sayfayı yeniledikten sonra mesajın tekrar gösterilmemesi için state'i temizle
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   
   const checkAuthStatus = async (token) => {
     try {
@@ -121,21 +134,68 @@ const MainMenu = () => {
     }
   };
   
+  // Slot seçimini görsel olarak yönet
+  const SlotSelector = () => (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ 
+        fontSize: '0.9rem', 
+        color: 'rgba(0, 200, 255, 0.8)', 
+        marginBottom: '0.5rem',
+        textAlign: 'center' 
+      }}>
+        Oyun Slotu Seçin
+      </div>
+      <div style={{ 
+        display: 'flex', 
+        gap: '10px', 
+        justifyContent: 'center' 
+      }}>
+        {[1, 2, 3].map(slot => (
+          <button
+            key={slot}
+            onClick={() => setSelectedSlot(slot)}
+            style={{
+              width: '60px',
+              height: '60px',
+              border: selectedSlot === slot 
+                ? '2px solid rgba(0, 200, 255, 0.8)' 
+                : '1px solid rgba(0, 200, 255, 0.3)',
+              borderRadius: '5px',
+              background: selectedSlot === slot 
+                ? 'rgba(0, 100, 200, 0.5)' 
+                : 'rgba(0, 30, 60, 0.7)',
+              color: 'white',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {slot}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  
   const handleSinglePlayer = () => {
     // Tek oyunculu moda yönlendir
-    // Giriş yapmadıysa login ekranı, karakteri yoksa karakter oluşturmaya SinglePlayer bileşeni içinde yönlendirilecek
-    navigate('/single-player');
+    navigate('/single-player', { 
+      state: { 
+        slotId: selectedSlot 
+      } 
+    });
   };
   
   const handleMultiPlayer = () => {
     // Çok oyunculu moda yönlendir
-    // Giriş yapmadıysa login ekranına MultiPlayer bileşeni içinde yönlendirilecek
     navigate('/multi-player');
   };
   
   const handleLoadGame = () => {
     // Kayıtlı oyun yükleme ekranına yönlendir
-    // Giriş yapmadıysa login ekranına LoadGame bileşeni içinde yönlendirilecek
     navigate('/load-game');
   };
   
@@ -189,6 +249,9 @@ const MainMenu = () => {
           <AuthButton onClick={handleRegister}>Kayıt Ol</AuthButton>
         </AuthButtons>
       )}
+      
+      {/* Slot seçimi */}
+      {isLoggedIn && <SlotSelector />}
       
       <MenuButton onClick={handleSinglePlayer}>Tek Oyunculu</MenuButton>
       <MenuButton onClick={handleMultiPlayer}>Çok Oyunculu</MenuButton>

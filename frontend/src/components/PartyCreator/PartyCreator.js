@@ -254,7 +254,7 @@ const PartyCreator = () => {
       
       // Parti verilerini localStorage'a kaydet (API başarısız olursa yedek olarak)
       try {
-        localStorage.setItem('partyData', JSON.stringify(party));
+        localStorage.setItem(`partyData_slot_${slotId}`, JSON.stringify(party));
       } catch (storageError) {
         console.warn("Parti verileri localStorage'a kaydedilemedi:", storageError);
       }
@@ -270,13 +270,14 @@ const PartyCreator = () => {
       if (response.success) {
         alert('Parti başarıyla oluşturuldu!');
         
-        // SlotId ile SinglePlayer'a yönlendir
-        navigate(`/single-player?slotId=${slotId}`, { 
+        // Parti oluşturma başarılıysa doğrudan o slot için oyun ekranına yönlendir
+        navigate('/game-screen', { 
           state: { 
             party: party,
             character: character,
-            slotId: slotId
-          } 
+            slotId: slotId,
+            newGame: true // Bu bir yeni oyun
+          }
         });
       } else {
         // API yanıt hatası
@@ -284,65 +285,67 @@ const PartyCreator = () => {
           alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
           navigate('/login', { state: { returnUrl: '/party-creator' } });
         } else if (response.networkError) {
-          alert("Sunucuya bağlantı kurulamadı. API erişimi olmadan devam ediliyor.");
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
-          navigate(`/single-player?slotId=${slotId}`, { 
+          alert("Sunucuya bağlantı kurulamadı. Yerel verilerle devam ediliyor.");
+          // API hatası olsa bile doğrudan oyun ekranına yönlendir
+          navigate('/game-screen', { 
             state: { 
               party: party,
               character: character,
               slotId: slotId,
+              newGame: true,
               offlineMode: true 
-            } 
+            }
           });
         } else if (response.notFoundError) {
-          alert("API endpoint bulunamadı (404 hatası). API erişimi olmadan devam ediliyor.");
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
-          navigate(`/single-player?slotId=${slotId}`, { 
+          alert("API endpoint bulunamadı (404 hatası). Yerel verilerle devam ediliyor.");
+          navigate('/game-screen', { 
             state: { 
               party: party,
               character: character,
               slotId: slotId,
+              newGame: true,
               offlineMode: true 
-            } 
+            }
           });
         } else if (response.status === 500) {
           console.error("Sunucu hatası detayları:", response.data);
-          alert("Sunucu hatası: API'de bir problem oluştu. API erişimi olmadan devam ediliyor.");
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
-          navigate(`/single-player?slotId=${slotId}`, { 
+          alert("Sunucu hatası: API'de bir problem oluştu. Yerel verilerle devam ediliyor.");
+          navigate('/game-screen', { 
             state: { 
               party: party,
               character: character,
               slotId: slotId,
+              newGame: true,
               offlineMode: true 
-            } 
+            }
           });
         } else {
-          alert(`Parti oluşturulurken bir hata oluştu: ${response.message}. API erişimi olmadan devam ediliyor.`);
-          // API hatası olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
-          navigate(`/single-player?slotId=${slotId}`, { 
+          alert(`Parti oluşturulurken bir hata oluştu: ${response.message}. Yerel verilerle devam ediliyor.`);
+          navigate('/game-screen', { 
             state: { 
               party: party,
               character: character,
               slotId: slotId,
+              newGame: true,
               offlineMode: true 
-            } 
+            }
           });
         }
         console.error("API yanıt hatası:", response.error);
       }
     } catch (error) {
       console.error("Beklenmeyen hata:", error);
-      alert(`Beklenmeyen bir hata oluştu: ${error.message}. API erişimi olmadan devam ediliyor.`);
+      alert(`Beklenmeyen bir hata oluştu: ${error.message}. Yerel verilerle devam ediliyor.`);
       
-      // Hata olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
-      navigate(`/single-player?slotId=${slotId}`, { 
+      // Hata olsa bile oyun ekranına yönlendir
+      navigate('/game-screen', { 
         state: { 
           party: party,
           character: character,
           slotId: slotId,
+          newGame: true,
           offlineMode: true 
-        } 
+        }
       });
     } finally {
       setLoading(false);

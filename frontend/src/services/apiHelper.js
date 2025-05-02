@@ -46,7 +46,7 @@ export const testApiConnection = async () => {
   }
 };
 
-// API isteği yapan yardımcı fonksiyon
+// API istek fonksiyonu
 export const apiRequest = async (method, endpoint, data = null, extraHeaders = {}) => {
   try {
     // Token kontrolü
@@ -60,14 +60,20 @@ export const apiRequest = async (method, endpoint, data = null, extraHeaders = {
       headers.Authorization = `Bearer ${token}`;
     }
     
+    // Tam URL oluştur
+    const url = `${API_BASE_URL}${endpoint}`;
+    
+    console.log(`API isteği yapılıyor: ${method.toUpperCase()} ${url}`, data);
+    
+    // CORS ayarlarını ekle
     const config = {
       method,
-      url: `${API_BASE_URL}${endpoint}`,
+      url,
       headers,
+      withCredentials: false, // CORS sorunları varsa bunu açın
       ...(data && { data })
     };
     
-    console.log(`API isteği yapılıyor: ${method.toUpperCase()} ${endpoint}`);
     const response = await axios(config);
     
     return {
@@ -78,32 +84,52 @@ export const apiRequest = async (method, endpoint, data = null, extraHeaders = {
   } catch (error) {
     console.error(`API isteği hatası (${method.toUpperCase()} ${endpoint}):`, error);
     
-    // Token süresi dolmuş
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+    // Daha detaylı hata bilgisi
+    if (error.response) {
+      // Sunucudan dönen hata yanıtı
+      console.error('Sunucu yanıtı:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
       
+      // Token süresi dolmuş
+      if (error.response.status === 401) {
+        localStorage.removeItem('token');
+        
+        return {
+          success: false,
+          status: 401,
+          message: 'Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.',
+          error,
+          authError: true
+        };
+      }
+      
+      // Endpoint bulunamadı
+      if (error.response.status === 404) {
+        return {
+          success: false,
+          status: 404,
+          message: 'İstek yapılan endpoint bulunamadı.',
+          error,
+          notFoundError: true
+        };
+      }
+      
+      // Sunucu hatası
       return {
         success: false,
-        status: 401,
-        message: 'Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.',
-        error,
-        authError: true
-      };
-    }
-    
-    // Endpoint bulunamadı
-    if (error.response?.status === 404) {
-      return {
-        success: false,
-        status: 404,
-        message: 'İstek yapılan endpoint bulunamadı.',
-        error,
-        notFoundError: true
+        status: error.response.status,
+        message: error.response.data?.message || 'Sunucu hatası',
+        data: error.response.data,
+        error
       };
     }
     
     // Ağ hatası
-    if (error.code === 'ERR_NETWORK') {
+    if (error.request) {
+      console.error('Ağ hatası:', error.request);
       return {
         success: false,
         status: 0,
@@ -113,12 +139,11 @@ export const apiRequest = async (method, endpoint, data = null, extraHeaders = {
       };
     }
     
-    // Sunucu hatası
+    // Diğer hatalar
     return {
       success: false,
-      status: error.response?.status || 0,
-      message: error.response?.data?.message || error.message,
-      data: error.response?.data,
+      status: 0,
+      message: error.message,
       error
     };
   }

@@ -261,8 +261,20 @@ const PartyCreator = () => {
       
       // Parti verisini API'ye gönder (slot id ile)
       const response = await apiHelper.post('/api/game/create-party', { 
-        party: party,
-        slotId: slotId
+        party: {
+          ...party,
+          slotId: slotId,
+          supportBase: {
+            urban: 10,
+            rural: 10,
+            youth: 10,
+            elderly: 10,
+            middleClass: 10,
+            workingClass: 10,
+            religious: 10,
+            secular: 10
+          }
+        }
       });
       
       console.log("API yanıtı:", response);
@@ -273,10 +285,11 @@ const PartyCreator = () => {
         // Parti oluşturma başarılıysa doğrudan o slot için oyun ekranına yönlendir
         navigate('/game-screen', { 
           state: { 
-            party: party,
+            party: response.data.party || party,
             character: character,
             slotId: slotId,
-            newGame: true // Bu bir yeni oyun
+            newGame: true,
+            from: 'party-creator'
           }
         });
       } else {
@@ -286,70 +299,41 @@ const PartyCreator = () => {
           navigate('/login', { state: { returnUrl: '/party-creator' } });
         } else if (response.networkError) {
           alert("Sunucuya bağlantı kurulamadı. Yerel verilerle devam ediliyor.");
-          // API hatası olsa bile doğrudan oyun ekranına yönlendir
-          navigate('/game-screen', { 
-            state: { 
-              party: party,
-              character: character,
-              slotId: slotId,
-              newGame: true,
-              offlineMode: true 
-            }
-          });
+          handleOfflineMode();
         } else if (response.notFoundError) {
           alert("API endpoint bulunamadı (404 hatası). Yerel verilerle devam ediliyor.");
-          navigate('/game-screen', { 
-            state: { 
-              party: party,
-              character: character,
-              slotId: slotId,
-              newGame: true,
-              offlineMode: true 
-            }
-          });
+          handleOfflineMode();
         } else if (response.status === 500) {
           console.error("Sunucu hatası detayları:", response.data);
           alert("Sunucu hatası: API'de bir problem oluştu. Yerel verilerle devam ediliyor.");
-          navigate('/game-screen', { 
-            state: { 
-              party: party,
-              character: character,
-              slotId: slotId,
-              newGame: true,
-              offlineMode: true 
-            }
-          });
+          handleOfflineMode();
         } else {
           alert(`Parti oluşturulurken bir hata oluştu: ${response.message}. Yerel verilerle devam ediliyor.`);
-          navigate('/game-screen', { 
-            state: { 
-              party: party,
-              character: character,
-              slotId: slotId,
-              newGame: true,
-              offlineMode: true 
-            }
-          });
+          handleOfflineMode();
         }
         console.error("API yanıt hatası:", response.error);
       }
     } catch (error) {
       console.error("Beklenmeyen hata:", error);
       alert(`Beklenmeyen bir hata oluştu: ${error.message}. Yerel verilerle devam ediliyor.`);
-      
-      // Hata olsa bile oyun ekranına yönlendir
-      navigate('/game-screen', { 
-        state: { 
-          party: party,
-          character: character,
-          slotId: slotId,
-          newGame: true,
-          offlineMode: true 
-        }
-      });
+      handleOfflineMode();
     } finally {
       setLoading(false);
     }
+  };
+
+  // Çevrimdışı mod yönetimi
+  const handleOfflineMode = () => {
+    navigate('/game-screen', { 
+      state: { 
+        party: party,
+        character: character,
+        slotId: slotId,
+        newGame: true,
+        offlineMode: true,
+        from: 'party-creator'
+      }
+    });
   };
 
   // Önceki sayfaya dönme fonksiyonu

@@ -230,9 +230,11 @@ const LoadGame = () => {
   
   const handleLoadGame = (game) => {
     // Oyunu yükle ve ilgili bileşene yönlendir
-    navigate('/game-dashboard', { 
+    navigate('/game-screen', { 
       state: { 
         loadedGame: game,
+        slotId: game.slotId || 1,
+        saveId: game.id,
         from: 'load-game'
       }
     });

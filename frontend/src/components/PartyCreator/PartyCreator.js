@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './PartyCreator.css';
 
-// API yardımcı servisi
-import apiHelper from '../../services/apiHelper';
+// Import the enhanced API service
+import APIService from '../../services/APIService';
 
 // JSON verileri
 import ideologyAxes from '../../data/ideologies.json';
@@ -33,6 +33,7 @@ const PartyCreator = () => {
   const slotId = location.state?.slotId || 1;
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [apiAvailable, setApiAvailable] = useState(true);
   const [party, setParty] = useState({
     name: '',
     shortName: '',
@@ -55,6 +56,20 @@ const PartyCreator = () => {
   // Karakter verisini de tutalım
   const [character, setCharacter] = useState(null);
 
+  // Sayfa yüklendiğinde API durumunu kontrol et
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      const isAvailable = await APIService.checkConnection();
+      setApiAvailable(isAvailable);
+      
+      if (!isAvailable) {
+        console.log("API is not available. Using offline mode.");
+      }
+    };
+    
+    checkApiStatus();
+  }, []);
+
   // Karakter bilgisini getir
   useEffect(() => {
     const fetchCharacter = async () => {
@@ -67,57 +82,21 @@ const PartyCreator = () => {
         }
 
         // Karakter bilgilerini API'den al (slot id ile)
-        try {
-          console.log("Karakter bilgisi alınıyor...", slotId);
-          const response = await apiHelper.get(`/api/game/get-character/${slotId}`);
-          console.log("API yanıtı:", response);
-          
-          if (response.success && response.data.character) {
-            const characterData = response.data.character;
-            setCharacter(characterData);
-            setParty(prev => ({
-              ...prev,
-              founderId: characterData.id,
-              founderName: characterData.fullName,
-              slotId: slotId, // Slot ID'yi parti verisine ekle
-              ideology: { ...characterData.ideology } // Karakter ideolojisini başlangıç değeri olarak al
-            }));
-          } else {
-            // Son çare olarak normal endpoint'i dene
-            const fallbackResponse = await apiHelper.get('/api/game/get-character');
-            
-            if (fallbackResponse.success && fallbackResponse.data.character) {
-              const characterData = fallbackResponse.data.character;
-              setCharacter(characterData);
-              setParty(prev => ({
-                ...prev,
-                founderId: characterData.id,
-                founderName: characterData.fullName,
-                ideology: { ...characterData.ideology }
-              }));
-            } else {
-              // Son çare olarak localStorage'dan veri almayı dene
-              const storedCharacter = localStorage.getItem('characterData');
-              if (storedCharacter) {
-                const characterData = JSON.parse(storedCharacter);
-                setCharacter(characterData);
-                setParty(prev => ({
-                  ...prev,
-                  founderId: characterData.id || 1,
-                  founderName: characterData.fullName || 'Karakter Adı',
-                  ideology: characterData.ideology || prev.ideology
-                }));
-              } else {
-                console.log('Karakter bilgisi alınamadı.');
-                alert('Karakter bilgisi alınamadı. Lütfen önce karakter oluşturun.');
-                navigate('/character-creator');
-              }
-            }
-          }
-        } catch (apiError) {
-          console.error("API'den karakter bilgisi alınamadı:", apiError);
-          // Son çare olarak localStorage'dan veri almayı dene
-          const storedCharacter = localStorage.getItem('characterData');
+        const response = await APIService.get(`/api/game/get-character/${slotId}`);
+        
+        if (response.success && response.data?.character) {
+          const characterData = response.data.character;
+          setCharacter(characterData);
+          setParty(prev => ({
+            ...prev,
+            founderId: characterData.id,
+            founderName: characterData.fullName,
+            slotId: slotId,
+            ideology: { ...characterData.ideology }
+          }));
+        } else {
+          // LocalStorage'dan veri almayı dene
+          const storedCharacter = localStorage.getItem('character');
           if (storedCharacter) {
             const characterData = JSON.parse(storedCharacter);
             setCharacter(characterData);
@@ -128,14 +107,28 @@ const PartyCreator = () => {
               ideology: characterData.ideology || prev.ideology
             }));
           } else {
-            alert('Karakter bilgilerine erişilemedi. Lütfen önce karakter oluşturun.');
+            console.log('Karakter bilgisi alınamadı.');
+            alert('Karakter bilgisi alınamadı. Lütfen önce karakter oluşturun.');
             navigate('/character-creator');
           }
         }
       } catch (error) {
         console.error("Karakter bilgisi getirme hatası:", error);
-        alert('Karakter bilgilerine erişilemedi. Lütfen önce karakter oluşturun.');
-        navigate('/character-creator');
+        // LocalStorage'dan veri almayı dene
+        const storedCharacter = localStorage.getItem('character');
+        if (storedCharacter) {
+          const characterData = JSON.parse(storedCharacter);
+          setCharacter(characterData);
+          setParty(prev => ({
+            ...prev,
+            founderId: characterData.id || 1,
+            founderName: characterData.fullName || 'Karakter Adı',
+            ideology: characterData.ideology || prev.ideology
+          }));
+        } else {
+          alert('Karakter bilgilerine erişilemedi. Lütfen önce karakter oluşturun.');
+          navigate('/character-creator');
+        }
       }
     };
 
@@ -153,7 +146,7 @@ const PartyCreator = () => {
 
   // İdeoloji pozisyon adı
   const getPositionName = (axis, value) => {
-    const positions = ideologyAxes[axis].positions;
+    const positions = ideologyAxes[axis]?.positions || ["Pozisyon 1", "Pozisyon 2", "Pozisyon 3", "Pozisyon 4", "Pozisyon 5"];
     const index = Math.floor(value / (100 / (positions.length - 1)));
     return positions[Math.min(index, positions.length - 1)];
   };
@@ -166,8 +159,9 @@ const PartyCreator = () => {
     
     for (const axis in ideologyAxes) {
       if (values[axis] !== undefined) {
-        weightedSum += values[axis] * ideologyAxes[axis].weight;
-        totalWeight += ideologyAxes[axis].weight;
+        const weight = ideologyAxes[axis]?.weight || 1;
+        weightedSum += values[axis] * weight;
+        totalWeight += weight;
       }
     }
     
@@ -252,88 +246,59 @@ const PartyCreator = () => {
         return;
       }
       
-      // Parti verilerini localStorage'a kaydet (API başarısız olursa yedek olarak)
+      // Parti verilerini localStorage'a kaydet
       try {
-        localStorage.setItem(`partyData_slot_${slotId}`, JSON.stringify(party));
+        localStorage.setItem('party', JSON.stringify(party));
+        console.log("Parti verileri localStorage'a kaydedildi");
       } catch (storageError) {
         console.warn("Parti verileri localStorage'a kaydedilemedi:", storageError);
       }
       
-      // Parti verisini API'ye gönder (slot id ile)
-      const response = await apiHelper.post('/api/game/create-party', { 
-        party: {
-          ...party,
-          slotId: slotId,
-          supportBase: {
-            urban: 10,
-            rural: 10,
-            youth: 10,
-            elderly: 10,
-            middleClass: 10,
-            workingClass: 10,
-            religious: 10,
-            secular: 10
-          }
+      // API'ye göndermeyi dene (eğer varsa)
+      if (apiAvailable) {
+        const response = await APIService.post('/api/game/create-party', { 
+          party: party,
+          slotId: slotId
+        });
+        
+        console.log("API yanıtı:", response);
+        
+        if (!response.success) {
+          console.warn("API yanıtı başarısız, ancak yerel kayıt yapıldı:", response.message);
         }
+      } else {
+        console.log("API kullanılamıyor, yerel kayıt kullanılacak");
+      }
+      
+      // API yanıtına bakılmaksızın oyuna devam et (offline mod desteği için)
+      alert('Parti başarıyla oluşturuldu!');
+      
+      // SinglePlayer'a yönlendir
+      navigate(`/single-player?slotId=${slotId}`, { 
+        state: { 
+          party: party,
+          character: character,
+          slotId: slotId,
+          offlineMode: !apiAvailable
+        } 
       });
       
-      console.log("API yanıtı:", response);
-
-      if (response.success) {
-        alert('Parti başarıyla oluşturuldu!');
-        
-        // Parti oluşturma başarılıysa doğrudan o slot için oyun ekranına yönlendir
-        navigate('/game-screen', { 
-          state: { 
-            party: response.data.party || party,
-            character: character,
-            slotId: slotId,
-            newGame: true,
-            from: 'party-creator'
-          }
-        });
-      } else {
-        // API yanıt hatası
-        if (response.authError) {
-          alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
-          navigate('/login', { state: { returnUrl: '/party-creator' } });
-        } else if (response.networkError) {
-          alert("Sunucuya bağlantı kurulamadı. Yerel verilerle devam ediliyor.");
-          handleOfflineMode();
-        } else if (response.notFoundError) {
-          alert("API endpoint bulunamadı (404 hatası). Yerel verilerle devam ediliyor.");
-          handleOfflineMode();
-        } else if (response.status === 500) {
-          console.error("Sunucu hatası detayları:", response.data);
-          alert("Sunucu hatası: API'de bir problem oluştu. Yerel verilerle devam ediliyor.");
-          handleOfflineMode();
-        } else {
-          alert(`Parti oluşturulurken bir hata oluştu: ${response.message}. Yerel verilerle devam ediliyor.`);
-          handleOfflineMode();
-        }
-        console.error("API yanıt hatası:", response.error);
-      }
     } catch (error) {
       console.error("Beklenmeyen hata:", error);
-      alert(`Beklenmeyen bir hata oluştu: ${error.message}. Yerel verilerle devam ediliyor.`);
-      handleOfflineMode();
+      alert(`Beklenmeyen bir hata oluştu, ancak parti bilgileri yerel olarak kaydedildi. Devam edebilirsiniz.`);
+      
+      // Hata olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
+      navigate(`/single-player?slotId=${slotId}`, { 
+        state: { 
+          party: party,
+          character: character,
+          slotId: slotId,
+          offlineMode: true 
+        } 
+      });
     } finally {
       setLoading(false);
     }
-  };
-
-  // Çevrimdışı mod yönetimi
-  const handleOfflineMode = () => {
-    navigate('/game-screen', { 
-      state: { 
-        party: party,
-        character: character,
-        slotId: slotId,
-        newGame: true,
-        offlineMode: true,
-        from: 'party-creator'
-      }
-    });
   };
 
   // Önceki sayfaya dönme fonksiyonu
@@ -349,7 +314,7 @@ const PartyCreator = () => {
       if (party.ideology[axis] !== undefined) {
         const position = getPositionName(axis, party.ideology[axis]);
         tags.push({
-          axis: ideologyAxes[axis].name,
+          axis: ideologyAxes[axis]?.name || axis,
           position
         });
       }
@@ -463,6 +428,16 @@ const PartyCreator = () => {
                 </p>
               </div>
               
+              {/* API durum bilgisi */}
+              {!apiAvailable && (
+                <div className="info-box" style={{marginTop: '1rem', backgroundColor: 'rgba(255, 60, 60, 0.2)'}}>
+                  <h4 style={{fontSize: '1rem', margin: '0 0 0.75rem 0', color: 'rgba(255, 160, 160, 0.9)'}}>Çevrimdışı Mod</h4>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', margin: 0}}>
+                    API bağlantısı kurulamadı. Parti bilgileri yerel olarak kaydedilecek ve oyun çevrimdışı modda çalışacak.
+                  </p>
+                </div>
+              )}
+              
               {/* Slot bilgisi göster */}
               <div className="info-box" style={{marginTop: '1rem'}}>
                 <h4 style={{fontSize: '1rem', margin: '0 0 0.75rem 0', color: 'rgba(0, 200, 255, 0.8)'}}>Oyun Slotu</h4>
@@ -473,7 +448,7 @@ const PartyCreator = () => {
             </div>
           )}
           
-          {/* Tab 2: İdeoloji ve Önizleme - CharacterCreator'daki gibi güncellendi */}
+          {/* Tab 2: İdeoloji ve Önizleme */}
           {currentTab === 1 && (
             <div>
               <h3 className="section-title">Parti İdeolojisi</h3>
@@ -516,16 +491,16 @@ const PartyCreator = () => {
                 </div>
               </div>
               
-              {/* İdeoloji Eksenleri - CharacterCreator'daki gibi */}
+              {/* İdeoloji Eksenleri */}
               <div>
                 {Object.entries(ideologyAxes).map(([axis, data]) => (
                   <div key={axis} className="ideology-axis">
                     <div className="ideology-header">
-                      <label>{data.name} Ekseni</label>
+                      <label>{data?.name || axis}</label>
                       <span className="ideology-position">{getPositionName(axis, party.ideology[axis] || 50)}</span>
                     </div>
                     <div className="ideology-labels">
-                      {data.positions.map((position, idx) => (
+                      {(data?.positions || ["Pozisyon 1", "Pozisyon 2", "Pozisyon 3", "Pozisyon 4", "Pozisyon 5"]).map((position, idx) => (
                         <span key={idx}>{position}</span>
                       ))}
                     </div>
@@ -588,6 +563,16 @@ const PartyCreator = () => {
                   <li>Diğer partilerin parti liderleri sizin hakkınızda görüşler belirtir</li>
                 </ul>
               </div>
+              
+              {/* API durum bilgisi (tekrar gösteriyoruz) */}
+              {!apiAvailable && (
+                <div className="info-box" style={{marginTop: '1rem', backgroundColor: 'rgba(255, 60, 60, 0.2)'}}>
+                  <h4 style={{fontSize: '1rem', margin: '0 0 0.75rem 0', color: 'rgba(255, 160, 160, 0.9)'}}>Çevrimdışı Mod</h4>
+                  <p style={{fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.8)', margin: 0}}>
+                    API bağlantısı kurulamadı. Parti bilgileri yerel olarak kaydedilecek ve oyun çevrimdışı modda çalışacak.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

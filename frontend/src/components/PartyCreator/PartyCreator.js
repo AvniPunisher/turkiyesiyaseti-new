@@ -225,81 +225,108 @@ const PartyCreator = () => {
     return getContrastColor(hexColor);
   };
 
-  // Parti oluşturma işlemi
-  const createParty = async () => {
-    try {
-      setLoading(true);
-      console.log("Parti oluşturuluyor:", party, "Slot ID:", slotId);
-      
-      // Token kontrolü
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Parti oluşturmak için giriş yapmanız gerekmektedir.');
-        navigate('/login', { state: { returnUrl: '/party-creator' } });
-        return;
-      }
-      
-      // Formda eksik alan kontrolü
-      if (!party.name || !party.shortName || !party.colorId || !party.founderId) {
-        alert('Lütfen tüm gerekli alanları doldurun.');
-        setLoading(false);
-        return;
-      }
-      
-      // Parti verilerini localStorage'a kaydet
-      try {
-        localStorage.setItem('party', JSON.stringify(party));
-        console.log("Parti verileri localStorage'a kaydedildi");
-      } catch (storageError) {
-        console.warn("Parti verileri localStorage'a kaydedilemedi:", storageError);
-      }
-      
-      // API'ye göndermeyi dene (eğer varsa)
-      if (apiAvailable) {
-        const response = await APIService.post('/api/game/create-party', { 
-          party: party,
-          slotId: slotId
-        });
-        
-        console.log("API yanıtı:", response);
-        
-        if (!response.success) {
-          console.warn("API yanıtı başarısız, ancak yerel kayıt yapıldı:", response.message);
-        }
-      } else {
-        console.log("API kullanılamıyor, yerel kayıt kullanılacak");
-      }
-      
-      // API yanıtına bakılmaksızın oyuna devam et (offline mod desteği için)
-      alert('Parti başarıyla oluşturuldu!');
-      
-      // SinglePlayer'a yönlendir
-      navigate(`/single-player?slotId=${slotId}`, { 
-        state: { 
-          party: party,
-          character: character,
-          slotId: slotId,
-          offlineMode: !apiAvailable
-        } 
-      });
-      
-    } catch (error) {
-      console.error("Beklenmeyen hata:", error);
-      alert(`Beklenmeyen bir hata oluştu, ancak parti bilgileri yerel olarak kaydedildi. Devam edebilirsiniz.`);
-      
-      // Hata olsa bile kullanıcı deneyiminin devam etmesi için yönlendir
-      navigate(`/single-player?slotId=${slotId}`, { 
-        state: { 
-          party: party,
-          character: character,
-          slotId: slotId,
-          offlineMode: true 
-        } 
-      });
-    } finally {
-      setLoading(false);
+ const createParty = async () => {
+  try {
+    setLoading(true);
+    console.log("Parti oluşturuluyor:", party, "Slot ID:", slotId);
+    
+    // Token kontrolü
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Parti oluşturmak için giriş yapmanız gerekmektedir.');
+      navigate('/login', { state: { returnUrl: '/party-creator' } });
+      return;
     }
-  };
+    
+    // Formda eksik alan kontrolü
+    if (!party.name || !party.shortName || !party.colorId || !party.founderId) {
+      alert('Lütfen tüm gerekli alanları doldurun.');
+      setLoading(false);
+      return;
+    }
+    
+    // Parti verilerini localStorage'a kaydet (API başarısız olursa yedek olarak)
+    try {
+      localStorage.setItem('partyData', JSON.stringify(party));
+    } catch (storageError) {
+      console.warn("Parti verileri localStorage'a kaydedilemedi:", storageError);
+    }
+    
+    // Parti verisini API'ye gönder
+    try {
+      const response = await apiHelper.post('/api/game/create-party', { 
+        party: party,
+        slotId: slotId
+      });
+      
+      console.log("API yanıtı:", response);
+
+      if (response.success) {
+        alert('Parti başarıyla oluşturuldu!');
+        
+        // Doğrudan Game Dashboard'a yönlendir
+        navigate('/game-dashboard', { 
+          state: { 
+            party: response.data.party || party,
+            character: character,
+            slotId: slotId,
+            newGame: true
+          } 
+        });
+      } else {
+        // API yanıt hatası
+        if (response.authError) {
+          alert("Oturum süreniz dolmuş. Lütfen yeniden giriş yapın.");
+          navigate('/login', { state: { returnUrl: '/party-creator' } });
+        } else {
+          console.error("API yanıt hatası:", response.error);
+          alert(`Parti oluşturulurken bir hata oluştu: ${response.message}. Ancak offline modda devam edebilirsiniz.`);
+          
+          // API hatası olsa bile oyun ekranına yönlendir
+          navigate('/game-dashboard', { 
+            state: { 
+              party: party,
+              character: character,
+              slotId: slotId,
+              offlineMode: true,
+              newGame: true
+            } 
+          });
+        }
+      }
+    } catch (apiError) {
+      console.error("API hatası:", apiError);
+      alert('Sunucuya bağlanılamadı, ancak offline modda devam edebilirsiniz.');
+      
+      // API hatası olsa bile oyun ekranına yönlendir
+      navigate('/game-dashboard', { 
+        state: { 
+          party: party,
+          character: character,
+          slotId: slotId,
+          offlineMode: true,
+          newGame: true
+        } 
+      });
+    }
+  } catch (error) {
+    console.error("Beklenmeyen hata:", error);
+    alert(`Beklenmeyen bir hata oluştu: ${error.message}. Offline modda devam edebilirsiniz.`);
+    
+    // Hata olsa bile oyun ekranına yönlendir
+    navigate('/game-dashboard', { 
+      state: { 
+        party: party,
+        character: character,
+        slotId: slotId,
+        offlineMode: true,
+        newGame: true
+      } 
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Önceki sayfaya dönme fonksiyonu
   const handleGoBack = () => {

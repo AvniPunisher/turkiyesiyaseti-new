@@ -10,7 +10,7 @@ import LoadGame from './components/LoadGame';
 import CharacterCreator from './components/CharacterCreator/CharacterCreator';
 import PartyCreator from './components/PartyCreator/PartyCreator';
 import GameDashboard from './components/GameDashboard/GameDashboard';
-import { GameScreen } from './components/GameScreen';
+import GameScreen from './components/GameScreen/GameScreen';
 import GlobalStyle from './GlobalStyle';
 
 // Özel koruma bileşeni - oyun sayfaları için giriş kontrolü
@@ -66,11 +66,8 @@ function App() {
             <GameDashboard />
           </ProtectedRoute>
         } />
-        <Route path="/game" element={<GameScreen />
-          <ProtectedRoute>
-            <GameScreen />
-          </ProtectedRoute>
-        } />
+        <Route path="/game" element={<GameScreen />} />
+          
         
         {/* Bulunamayan sayfalar için ana menüye yönlendir */}
         <Route path="*" element={<Navigate to="/" replace />} />

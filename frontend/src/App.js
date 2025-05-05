@@ -13,7 +13,7 @@ import GameDashboard from './components/GameDashboard/GameDashboard';
 import GlobalStyle from './GlobalStyle';
 import { GameProvider } from './context/GameContext';
 import { CharacterProvider } from './context/CharacterContext';
-import GameScreen from './components/GameScreen';
+import GameScreen from './components/GameScreen/GameScreen';
 
 // Özel koruma bileşeni - oyun sayfaları için giriş kontrolü
 const ProtectedRoute = ({ children }) => {

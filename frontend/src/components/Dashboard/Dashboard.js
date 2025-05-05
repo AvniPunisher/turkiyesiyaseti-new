@@ -1,96 +1,95 @@
 import React from 'react';
-import { useGameContext } from '../../context/GameContext';
-import { useCharacterContext } from '../../context/CharacterContext';
-import PoliticsPanel from './PoliticsPanel';
-import EconomyIndicators from './EconomyIndicators';
-import SocialIndicators from './SocialIndicators';
-import CurrentEvents from './CurrentEvents';
+import { ChevronRight } from 'lucide-react';
+import Dashboard from './Dashboard';
+import CharacterPanel from './CharacterPanel';
+import CountryPanel from './CountryPanel';
+import EconomyPanel from './EconomyPanel';
+import ParliamentPanel from './ParliamentPanel';
+import ForeignPanel from './ForeignPanel';
+import PollsPanel from './PollsPanel';
 
-const Dashboard = () => {
-  const { parameters } = useGameContext();
-  const { character } = useCharacterContext();
+const GameContent = ({ 
+  activeTab, 
+  sidebarOpen, 
+  toggleSidebar,
+  resultContent,
+  showResultPanel,
+  setShowResultPanel,
+  isShowingResults
+}) => {
+  const renderContent = () => {
+    switch(activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'character':
+        return <CharacterPanel />;
+      case 'country':
+        return <CountryPanel />;
+      case 'economy':
+        return <EconomyPanel />;
+      case 'parliament':
+        return <ParliamentPanel />;
+      case 'foreign':
+        return <ForeignPanel />;
+      case 'polls':
+        return <PollsPanel />;
+      default:
+        return <Dashboard />;
+    }
+  };
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-grid">
-        {/* Politik Durum */}
-        <PoliticsPanel parameters={parameters} />
+    <div className="game-content">
+      {/* Sonuç paneli */}
+      {showResultPanel && resultContent && (
+        <div className="result-panel">
+          <div className="result-header">
+            <h2>{resultContent.title}</h2>
+            <button 
+              className="close-button"
+              onClick={() => setShowResultPanel(false)}
+            >
+              ✕
+            </button>
+          </div>
+          <div className="result-body">
+            <div className="result-icon">{resultContent.icon}</div>
+            <p>{resultContent.description}</p>
+          </div>
+          <button 
+            className="close-result-button"
+            onClick={() => setShowResultPanel(false)}
+          >
+            Kapat
+          </button>
+        </div>
+      )}
+      
+      <div className="content-header">
+        <h2>
+          {activeTab === 'dashboard' ? 'Genel Durum Paneli' : 
+           activeTab === 'character' ? 'Karakter Bilgileri' : 
+           activeTab === 'country' ? 'Ülke Yönetimi' : 
+           activeTab === 'economy' ? 'Ekonomi Detayları' : 
+           activeTab === 'parliament' ? 'Meclis Faaliyetleri' : 
+           activeTab === 'foreign' ? 'Dış İlişkiler' : 'Anketler'}
+        </h2>
         
-        {/* Ekonomik Durum */}
-        <EconomyIndicators parameters={parameters} />
-        
-        {/* Sosyal Durum */}
-        <SocialIndicators parameters={parameters} />
+        {!sidebarOpen && (
+          <button 
+            className="toggle-sidebar-button"
+            onClick={toggleSidebar}
+          >
+            <ChevronRight size={20} />
+          </button>
+        )}
       </div>
       
-      {/* Güncel Olaylar */}
-      <CurrentEvents />
-      
-      {/* Kariyeriniz */}
-      <div className="career-panel">
-        <h3>Siyasi Kariyeriniz</h3>
-        <div className="character-header">
-          <div className="character-avatar">
-            {character.name.charAt(0)}
-          </div>
-          <div className="character-info">
-            <h4>{character.name}</h4>
-            <p>{character.role}</p>
-          </div>
-        </div>
-        
-        <div className="character-stats">
-          <div className="stat-item">
-            <div className="stat-header">
-              <span>Tecrübe:</span>
-              <span>{character.experience}/100</span>
-            </div>
-            <div className="progress-bar">
-              <div 
-                className="progress-fill"
-                style={{ width: `${character.experience}%` }}
-              ></div>
-            </div>
-          </div>
-          
-          <div className="stat-item">
-            <div className="stat-header">
-              <span>Popülerlik:</span>
-              <span>{character.popularity}%</span>
-            </div>
-            <div className="progress-bar">
-              <div 
-                className="progress-fill"
-                style={{ width: `${character.popularity}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="skill-development">
-          <h4>Karakter Yeteneği Geliştirme</h4>
-          <div className="skills-grid">
-            <div className="skill-item">
-              <div className="skill-icon">🎤</div>
-              <div className="skill-name">Hitabet</div>
-            </div>
-            <div className="skill-item">
-              <div className="skill-icon">🧠</div>
-              <div className="skill-name">Strateji</div>
-            </div>
-            <div className="skill-item">
-              <div className="skill-icon">👥</div>
-              <div className="skill-name">Diplomasi</div>
-            </div>
-            <div className="skill-item">
-              <div className="skill-icon">📊</div>
-              <div className="skill-name">Ekonomi</div>
-            </div>
-          </div>
-        </div>
+      <div className="content-body">
+        {renderContent()}
       </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default GameContent;

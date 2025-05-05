@@ -12,6 +12,9 @@ import PartyCreator from './components/PartyCreator/PartyCreator';
 import GameDashboard from './components/GameDashboard/GameDashboard';
 import GameScreen from './components/GameScreen/GameScreen';
 import GlobalStyle from './GlobalStyle';
+import { GameProvider } from './context/GameContext';
+import { CharacterProvider } from './context/CharacterContext';
+import GameScreen from './components/GameScreen';
 
 // Özel koruma bileşeni - oyun sayfaları için giriş kontrolü
 const ProtectedRoute = ({ children }) => {
@@ -28,6 +31,8 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <Router>
+    <GameProvider>
+    <CharacterProvider>
       <GlobalStyle />
       <Routes>
         {/* Genel erişilebilir rotalar */}
@@ -61,17 +66,14 @@ function App() {
             <PartyCreator />
           </ProtectedRoute>
         } />
-        <Route path="/game-dashboard" element={
-          <ProtectedRoute>
-            <GameDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/game" element={<GameScreen />} />
+       <Route path="/" element={<GameScreen />} />
           
         
         {/* Bulunamayan sayfalar için ana menüye yönlendir */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+          </CharacterProvider>
+      </GameProvider>
     </Router>
   );
 }

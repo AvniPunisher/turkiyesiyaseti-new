@@ -1,0 +1,325 @@
+/* Dashboard Layout */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel Styles */
+.panel {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.panel-body {
+  padding: 1rem;
+}
+
+/* Politics Panel */
+.politics-panel {
+  grid-column: span 1;
+}
+
+.politics-chart {
+  height: 180px;
+  margin-bottom: 1rem;
+}
+
+.politics-info {
+  margin-top: 1rem;
+}
+
+.politics-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.approval-meter {
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.approval-fill {
+  height: 100%;
+  background-color: #3182ce;
+}
+
+/* Economy Panel */
+.economy-panel {
+  grid-column: span 1;
+}
+
+.economy-indicators {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.economy-indicator {
+  text-align: center;
+}
+
+.indicator-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.indicator-label {
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+.indicator-trend {
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+.trend-up {
+  color: #38a169;
+}
+
+.trend-down {
+  color: #e53e3e;
+}
+
+/* Social Panel */
+.social-panel {
+  grid-column: span 1;
+}
+
+.social-indicators {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.social-indicator {
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.social-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.social-label {
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+/* Events Panel */
+.events-panel {
+  margin-top: 1.5rem;
+}
+
+.events-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .events-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.event-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+}
+
+.event-icon {
+  padding: 1rem;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ebf8ff;
+}
+
+.event-content {
+  flex: 1;
+  padding: 1rem;
+}
+
+.event-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.event-description {
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+.event-status {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background-color: #e9ecef;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.status-urgent {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #c05621;
+}
+
+.status-resolved {
+  background-color: #c6f6d5;
+  color: #2f855a;
+}
+
+/* Career Panel */
+.career-panel {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.career-panel h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.character-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.character-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #3182ce;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-right: 1rem;
+}
+
+.character-info h4 {
+  margin: 0;
+  margin-bottom: 0.25rem;
+}
+
+.character-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+.character-stats {
+  margin-bottom: 1.5rem;
+}
+
+.stat-item {
+  margin-bottom: 1rem;
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.skill-development h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .skills-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.skill-item {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.skill-item:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.skill-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.skill-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+}

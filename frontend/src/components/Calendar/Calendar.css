@@ -1,0 +1,99 @@
+/* Calendar Container */
+.calendar-container {
+  width: 100%;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+/* Weeks Grid */
+.weeks-grid {
+  display: flex;
+  padding: 0 0.5rem;
+}
+
+/* Week Item */
+.week-item {
+  flex: 0 0 auto;
+  width: 120px;
+  height: 80px;
+  margin-right: 0.75rem;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.week-item:hover {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.week-item.current {
+  border-color: #3182ce;
+  background-color: #ebf8ff;
+}
+
+.week-item.past {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.week-item.has-action {
+  border-color: #48bb78;
+}
+
+.week-number {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.week-month {
+  font-size: 0.8rem;
+  color: #4a5568;
+  margin-bottom: 0.25rem;
+}
+
+.week-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.week-action {
+  font-size: 1.5rem;
+  color: #48bb78;
+}
+
+.week-special {
+  font-size: 1.5rem;
+}
+
+.week-footer {
+  font-size: 0.75rem;
+  color: #718096;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Special week styling */
+.week-item.election {
+  background-color: #fef3c7;
+}
+
+.week-item.national {
+  background-color: #fee2e2;
+}
+
+.week-item.economic {
+  background-color: #e0f2fe;
+}

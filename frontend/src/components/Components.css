@@ -1,0 +1,913 @@
+/* Character Panel */
+.character-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.character-profile {
+  margin-bottom: 1.5rem;
+}
+
+.skill-section h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+}
+
+.skill-name {
+  width: 100px;
+  font-weight: 500;
+}
+
+.skill-bar {
+  flex: 1;
+  height: 20px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.skill-level {
+  height: 100%;
+  background-color: #4299e1;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.character-actions h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.character-actions p {
+  margin-bottom: 1rem;
+  color: #718096;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .skills-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.skill-development-item {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.develop-button {
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Country Panel */
+.country-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.country-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.country-info-section h4,
+.government-section h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.social-grid,
+.government-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.social-stat-item,
+.government-stat-item {
+  margin-bottom: 0.5rem;
+}
+
+.social-stat-header,
+.government-stat-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.provinces-section h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.info-text {
+  color: #718096;
+  margin-bottom: 1rem;
+}
+
+.provinces-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .provinces-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.province-item {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.province-name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.province-support {
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+/* Economy Panel */
+.economy-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.economy-summary {
+  margin-bottom: 1.5rem;
+}
+
+.main-indicators {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 992px) {
+  .main-indicators {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.main-indicator-item {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.indicator-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.indicator-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.indicator-label {
+  font-size: 0.9rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.indicator-trend {
+  font-size: 0.9rem;
+}
+
+.trend-up {
+  color: #38a169;
+}
+
+.trend-down {
+  color: #e53e3e;
+}
+
+.economy-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.economy-section {
+  margin-bottom: 1.5rem;
+}
+
+.economy-section h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.budget-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.budget-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.sectors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .sectors-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sector-item {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.sector-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sector-name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.sector-growth {
+  font-size: 0.9rem;
+}
+
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.project-item {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.project-name {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.project-progress {
+  display: flex;
+  align-items: center;
+}
+
+.project-progress .progress-bar {
+  flex: 1;
+  margin-right: 0.5rem;
+}
+
+/* Parliament Panel */
+.parliament-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.parliament-composition {
+  margin-bottom: 1.5rem;
+}
+
+.parliament-composition h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.parliament-chart {
+  margin-bottom: 1rem;
+}
+
+.parliament-seats {
+  display: flex;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.parliament-party {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.parliament-party.chp {
+  background-color: #E81B23;
+}
+
+.parliament-party.akp {
+  background-color: #FFA500;
+}
+
+.parliament-party.mhp {
+  background-color: #C8102E;
+}
+
+.parliament-party.iyi {
+  background-color: #1E81B0;
+}
+
+.parliament-party.others {
+  background-color: #6c757d;
+}
+
+.parliament-info {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.parliament-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.legislation-section h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.legislation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.legislation-item {
+  display: flex;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+  border-left: 4px solid #4299e1;
+}
+
+.legislation-item.economy {
+  border-left-color: #4299e1;
+}
+
+.legislation-item.social {
+  border-left-color: #48bb78;
+}
+
+.legislation-item.political {
+  border-left-color: #ed8936;
+}
+
+.legislation-content {
+  flex: 1;
+}
+
+.legislation-title {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.legislation-details {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.legislation-status {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background-color: #e9ecef;
+}
+
+.legislation-status.progress {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.legislation-status.pending {
+  background-color: #fef3c7;
+  color: #c05621;
+}
+
+.legislation-status.passed {
+  background-color: #c6f6d5;
+  color: #2f855a;
+}
+
+.legislation-stage {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+.legislation-support {
+  width: 30%;
+  padding-left: 1rem;
+}
+
+.support-label {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-bottom: 0.25rem;
+}
+
+.support-bar {
+  position: relative;
+  height: 20px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.support-fill {
+  height: 100%;
+  background-color: #4299e1;
+  border-radius: 4px;
+}
+
+.support-text {
+  position: absolute;
+  right: 0.5rem;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: white;
+  font-weight: 500;
+}
+
+.parliament-actions h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .action-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.parliament-action {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.parliament-action:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.action-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.action-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Foreign Panel */
+.foreign-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.foreign-overview {
+  margin-bottom: 1.5rem;
+}
+
+.overview-card {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.overview-icon {
+  font-size: 2.5rem;
+  margin-right: 1.5rem;
+}
+
+.overview-content {
+  flex: 1;
+}
+
+.overview-title {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.overview-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.foreign-relations h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.relations-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.relation-item {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.relation-flag {
+  font-size: 2rem;
+  margin-right: 1rem;
+}
+
+.relation-content {
+  flex: 1;
+}
+
+.relation-name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.relation-value {
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.foreign-issues h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.issue-item {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.issue-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.issue-content {
+  flex: 1;
+}
+
+.issue-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.issue-description {
+  font-size: 0.9rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.issue-status {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background-color: #e9ecef;
+  display: inline-block;
+}
+
+.international-actions h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.diplomatic-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .diplomatic-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.diplomatic-action {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.diplomatic-action:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+/* Polls Panel */
+.polls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.current-polls {
+  margin-bottom: 1.5rem;
+}
+
+.polls-overview {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .polls-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+.poll-item {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.poll-title {
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.poll-value {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.poll-chart {
+  margin-bottom: 1rem;
+}
+
+.poll-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trend-value {
+  font-weight: 500;
+}
+
+.trend-period {
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+.polls-history h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.history-chart {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-area {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.placeholder-chart {
+  position: relative;
+  border-bottom: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
+}
+
+.chart-line {
+  position: relative;
+}
+
+.chart-point {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: #4299e1;
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.chart-point::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 100px;
+  background-color: #e2e8f0;
+  z-index: -1;
+  transform: translateX(-50%);
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: space-between;
+}
+
+.chart-label {
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+.history-table {
+  margin-bottom: 1.5rem;
+}
+
+.history-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th {
+  text-align: left;
+  font-weight: 500;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.history-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.issue-polls h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.issues-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.issue-poll-item {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.issue-name {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.issue-approval {
+  display: flex;
+  align-items: center;
+}
+
+.issue-approval .progress-bar {
+  flex: 1;
+  margin-right: 0.75rem;
+}
+
+.approval-value {
+  font-weight: 500;
+  width: 40px;
+  text-align: right;
+}
+
+.poll-actions h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.poll-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .poll-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.poll-action {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.poll-action:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}

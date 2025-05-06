@@ -1,3 +1,6 @@
+// Lucide ikonlarını import et
+import { MessageCircle, User, MapPin, Building, BarChart2, Globe } from 'lucide-react';
+
 // Aksiyon kategorileri
 export const actionCategories = [
   { id: 'media', name: 'Medya', icon: <MessageCircle size={22} /> },

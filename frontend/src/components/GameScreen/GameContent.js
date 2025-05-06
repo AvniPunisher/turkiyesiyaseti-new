@@ -1,13 +1,13 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-// components klasöründeki bileşenlere erişim
-import Dashboard from '../Dashboard';
-import CharacterPanel from '../CharacterPanel';
-import CountryPanel from '../CountryPanel';
-import EconomyPanel from '../EconomyPanel';
-import ParliamentPanel from '../ParliamentPanel';
-import ForeignPanel from '../ForeignPanel';
-import PollsPanel from '../PollsPanel';
+// Tüm panel bileşenlerinin Dashboard klasöründe olduğunu varsayıyoruz
+import Dashboard from '../Dashboard/Dashboard';
+import CharacterPanel from '../Dashboard/CharacterPanel';
+import CountryPanel from '../Dashboard/CountryPanel';
+import EconomyPanel from '../Dashboard/EconomyPanel';
+import ParliamentPanel from '../Dashboard/ParliamentPanel';
+import ForeignPanel from '../Dashboard/ForeignPanel';
+import PollsPanel from '../Dashboard/PollsPanel';
 
 const GameContent = ({ 
   activeTab, 

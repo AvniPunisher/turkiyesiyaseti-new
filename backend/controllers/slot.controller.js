@@ -1,12 +1,12 @@
+// controllers/slot.controller.js
 const { v4: uuidv4 } = require('uuid');
-const db = require('../db');
+const { pool } = require('../config/db');
 
-// Kullanıcının 3 slotunu getir
 exports.getSlots = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const [rows] = await db.query(
+    const [rows] = await pool.query(
       'SELECT * FROM game_slots WHERE user_id = ? ORDER BY slot_number ASC',
       [userId]
     );
@@ -23,13 +23,12 @@ exports.getSlots = async (req, res) => {
   }
 };
 
-// Yeni oyun oluştur
 exports.createSlot = async (req, res) => {
   const userId = req.user.id;
   const { slotNumber, gameName } = req.body;
 
   try {
-    const [existing] = await db.query(
+    const [existing] = await pool.query(
       'SELECT * FROM game_slots WHERE user_id = ? AND slot_number = ?',
       [userId, slotNumber]
     );
@@ -40,7 +39,7 @@ exports.createSlot = async (req, res) => {
 
     const id = uuidv4();
 
-    await db.query(
+    await pool.query(
       'INSERT INTO game_slots (id, user_id, slot_number, game_name) VALUES (?, ?, ?, ?)',
       [id, userId, slotNumber, gameName]
     );

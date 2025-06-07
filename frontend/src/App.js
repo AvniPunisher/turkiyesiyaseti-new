@@ -16,6 +16,7 @@ import GameScreen from './components/GameScreen/GameScreen';
 import Dashboard from './pages/Dashboard'; // ✅ yeni slot sayfası
 import GamePage from './pages/GamePage'; // dummy sayfa (oluşturulacak)
 import CharacterCreator from './pages/CharacterCreator';
+import SlotDetail from "./pages/SlotDetail";
 
 // Özel koruma bileşeni
 const ProtectedRoute = ({ children }) => {

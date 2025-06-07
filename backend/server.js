@@ -7,6 +7,19 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const gameRoutes = require('./routes/game');
 
+
+app.get('/api/selam', (req, res) => {
+  res.json({
+    message: "Türkiye Siyaset Simülasyonu API",
+    version: "1.0.0",
+    timestamp: new Date().toISOString()
+  });
+});
+
+
+
+
+
 // Ortam değişkenlerini yükle
 dotenv.config();
 

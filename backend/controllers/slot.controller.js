@@ -1,6 +1,6 @@
-// controllers/slot.controller.js
 const { v4: uuidv4 } = require('uuid');
 const { pool } = require('../config/db');
+const db = require('../config/db');
 
 exports.getSlots = async (req, res) => {
   const userId = req.user.id;
@@ -51,10 +51,7 @@ exports.createSlot = async (req, res) => {
   }
 };
 
-
-const db = require('../config/db');
-
-const getCharacterBySlot = async (req, res) => {
+exports.getCharacterBySlot = async (req, res) => {
   const { slotId } = req.params;
   const userId = req.user.id;
 
@@ -74,13 +71,3 @@ const getCharacterBySlot = async (req, res) => {
     res.status(500).json({ message: 'Sunucu hatası' });
   }
 };
-
-
-
-
-module.exports = {
-  createSlot,
-  getCharacterBySlot,
-  getSlots,
-};
-

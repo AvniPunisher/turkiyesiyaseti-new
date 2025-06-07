@@ -74,6 +74,25 @@ const getCharacterBySlot = async (req, res) => {
   }
 };
 
+exports.createSlot = async (req, res) => {
+  const { slotNumber, gameName } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const [result] = await db.execute(
+      'INSERT INTO slots (user_id, slot_number, game_name) VALUES (?, ?, ?)',
+      [userId, slotNumber, gameName]
+    );
+
+    res.status(201).json({ id: result.insertId, gameName });
+  } catch (error) {
+    console.error('Slot oluşturulamadı:', error);
+    res.status(500).json({ message: 'Sunucu hatası' });
+  }
+};
+
+
+
 module.exports = {
   createSlot,
   getSlotsByUser,

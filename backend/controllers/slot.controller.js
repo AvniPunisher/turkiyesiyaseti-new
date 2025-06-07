@@ -51,6 +51,7 @@ exports.createSlot = async (req, res) => {
   }
 };
 
+
 const db = require('../config/db');
 
 const getCharacterBySlot = async (req, res) => {
@@ -79,5 +80,7 @@ const getCharacterBySlot = async (req, res) => {
 
 module.exports = {
   createSlot,
-  getCharacterBySlot, // 🔔 bunu ekle
+  getCharacterBySlot,
+  getSlots,
 };
+

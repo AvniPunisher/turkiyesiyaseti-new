@@ -7,4 +7,7 @@ const authMiddleware = require('../middleware/auth');
 router.get('/', authMiddleware, slotController.getSlots);
 router.post('/', authMiddleware, slotController.createSlot);
 
+router.get('/:slotId/character', authenticateToken, getCharacterBySlot);
+
+
 module.exports = router;

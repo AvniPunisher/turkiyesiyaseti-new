@@ -50,3 +50,30 @@ exports.createSlot = async (req, res) => {
     res.status(500).json({ error: 'Sunucu hatası' });
   }
 };
+
+const db = require('../config/db');
+
+const getCharacterBySlot = async (req, res) => {
+  const { slotId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const [rows] = await db.execute(
+      'SELECT * FROM characters WHERE slot_id = ? AND user_id = ? LIMIT 1',
+      [slotId, userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ character: null });
+    }
+
+    res.json({ character: rows[0] });
+  } catch (error) {
+    console.error('Karakter alınamadı:', error);
+    res.status(500).json({ message: 'Sunucu hatası' });
+  }
+};
+
+module.exports = {
+  getCharacterBySlot,
+};

@@ -75,5 +75,8 @@ const getCharacterBySlot = async (req, res) => {
 };
 
 module.exports = {
-  getCharacterBySlot,
+  createSlot,
+  getSlotsByUser,
+  saveCharacterToSlot,
+  getCharacterBySlot, // 🔔 bunu ekle
 };

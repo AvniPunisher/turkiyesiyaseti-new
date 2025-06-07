@@ -8,6 +8,17 @@ const bodyParser = require('body-parser');
 const gameRoutes = require('./routes/game');
 
 
+// Ortam değişkenlerini yükle
+dotenv.config();
+
+
+// Veritabanı bağlantısını import et
+const { testConnection, pool } = require('./config/db');
+
+// Express uygulaması
+const app = express();
+
+
 app.get('/api/selam', (req, res) => {
   res.json({
     message: "Türkiye Siyaset Simülasyonu API",
@@ -20,15 +31,7 @@ app.get('/api/selam', (req, res) => {
 
 
 
-// Ortam değişkenlerini yükle
-dotenv.config();
 
-
-// Veritabanı bağlantısını import et
-const { testConnection, pool } = require('./config/db');
-
-// Express uygulaması
-const app = express();
 
 // CORS ayarları
 app.use(cors({

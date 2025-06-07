@@ -43,6 +43,7 @@ function App() {
             <Route path="/party-creator" element={<ProtectedRoute><PartyCreator /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/game/:id" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
+			<Route path="/slots/:slotId" element={<SlotDetail />} />
 
 			<Route path="/slots/:slotId/character" element={<CharacterCreator />} />
 

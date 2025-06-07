@@ -2,12 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const slotController = require('../controllers/slot.controller');
-const authMiddleware = require('../middleware/auth');
+const authenticateToken = require('../middleware/auth');
 
-router.get('/', authMiddleware, slotController.getSlots);
-router.post('/', authMiddleware, slotController.createSlot);
+// Slotları getir
+router.get('/', authenticateToken, slotController.getSlots);
 
-router.get('/:slotId/character', authenticateToken, getCharacterBySlot);
+// Yeni slot oluştur
+router.post('/', authenticateToken, slotController.createSlot);
 
+// Slot'a ait karakteri getir
+router.get('/:slotId/character', authenticateToken, slotController.getCharacterBySlot);
 
 module.exports = router;

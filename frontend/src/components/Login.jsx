@@ -185,10 +185,8 @@ const Login = () => {
       
       console.log("Giriş başarılı, yönlendiriliyor:", returnUrl);
       
-      // Belirtilen yere veya varsayılan olarak ana sayfaya yönlendir
-      const defaultRedirect = '/dashboard';
-const returnUrl = location.state?.returnUrl;
-
+      // Başarılı giriş sonrası yönlendirme
+const defaultRedirect = '/dashboard';
 // Eğer gelen returnUrl yoksa ya da login ekranına veya kök sayfaya yönlendiriyorsa dashboard’a git
 const safeRedirect = !returnUrl || returnUrl === '/' || returnUrl === '/login' ? defaultRedirect : returnUrl;
 

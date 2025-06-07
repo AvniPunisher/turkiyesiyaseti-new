@@ -186,11 +186,14 @@ const Login = () => {
       console.log("Giriş başarılı, yönlendiriliyor:", returnUrl);
       
       // Belirtilen yere veya varsayılan olarak ana sayfaya yönlendir
-      if (returnUrl === '/character-creator') {
-        navigate('/character-creator');
-      } else {
-        navigate(returnUrl);
-      }
+      const defaultRedirect = '/dashboard';
+const returnUrl = location.state?.returnUrl;
+
+// Eğer gelen returnUrl yoksa ya da login ekranına veya kök sayfaya yönlendiriyorsa dashboard’a git
+const safeRedirect = !returnUrl || returnUrl === '/' || returnUrl === '/login' ? defaultRedirect : returnUrl;
+
+navigate(safeRedirect);
+
     } catch (err) {
       console.error("Giriş hatası:", err);
       

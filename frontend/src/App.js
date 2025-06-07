@@ -16,6 +16,7 @@ import { CharacterProvider } from './context/CharacterContext';
 import GameScreen from './components/GameScreen/GameScreen';
 import Dashboard from './pages/Dashboard'; // ✅ yeni slot sayfası
 import GamePage from './pages/GamePage'; // dummy sayfa (oluşturulacak)
+import CharacterCreation from './pages/CharacterCreation';
 
 // Özel koruma bileşeni
 const ProtectedRoute = ({ children }) => {
@@ -43,6 +44,7 @@ function App() {
             <Route path="/party-creator" element={<ProtectedRoute><PartyCreator /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/game/:id" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
+			<Route path="/character-creation" element={<CharacterCreation />} />
 
             {/* Eski "/"" -> GameScreen yönlendirmesi iptal edildi */}
             <Route path="*" element={<Navigate to="/" replace />} />

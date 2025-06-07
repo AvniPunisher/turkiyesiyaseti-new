@@ -7,7 +7,6 @@ import Register from './components/Register';
 import SinglePlayer from './components/SinglePlayer';
 import MultiPlayer from './components/MultiPlayer';
 import LoadGame from './components/LoadGame';
-import CharacterCreator from './components/CharacterCreator/CharacterCreator';
 import PartyCreator from './components/PartyCreator/PartyCreator';
 import GameDashboard from './components/GameDashboard/GameDashboard';
 import GlobalStyle from './GlobalStyle';

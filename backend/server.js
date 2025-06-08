@@ -7,31 +7,14 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const gameRoutes = require('./routes/game');
 
-
 // Ortam değişkenlerini yükle
 dotenv.config();
-
 
 // Veritabanı bağlantısını import et
 const { testConnection, pool } = require('./config/db');
 
 // Express uygulaması
 const app = express();
-
-
-app.get('/api/selam', (req, res) => {
-  res.json({
-    message: "Türkiye Siyaset Simülasyonu API",
-    version: "1.0.0",
-    timestamp: new Date().toISOString()
-  });
-});
-
-
-
-
-
-
 
 // CORS ayarları
 app.use(cors({
@@ -75,7 +58,6 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/game', gameRoutes);
 app.use('/api/character', require('./routes/character')); 
 app.use('/api/party', require('./routes/party')); 
-app.use('/api/slots', require('./routes/slot.routes'));
 
 // Sağlık kontrolü endpointi
 app.get('/api/health-check', (req, res) => {

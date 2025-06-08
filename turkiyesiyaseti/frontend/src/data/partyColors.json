@@ -1,0 +1,14 @@
+[
+  { "name": "Kırmızı", "value": "#d32f2f", "textColor": "#ffffff" },
+  { "name": "Turuncu", "value": "#ff9100", "textColor": "#ffffff" },
+  { "name": "Sarı", "value": "#ffeb3b", "textColor": "#000000" },
+  { "name": "Yeşil", "value": "#388e3c", "textColor": "#ffffff" },
+  { "name": "Mavi", "value": "#1976d2", "textColor": "#ffffff" },
+  { "name": "Lacivert", "value": "#303f9f", "textColor": "#ffffff" },
+  { "name": "Mor", "value": "#7b1fa2", "textColor": "#ffffff" },
+  { "name": "Kahverengi", "value": "#795548", "textColor": "#ffffff" },
+  { "name": "Siyah", "value": "#212121", "textColor": "#ffffff" },
+  { "name": "Beyaz", "value": "#f5f5f5", "textColor": "#000000" },
+  { "name": "Gri", "value": "#757575", "textColor": "#ffffff" },
+  { "name": "Turkuaz", "value": "#00bcd4", "textColor": "#000000" }
+]

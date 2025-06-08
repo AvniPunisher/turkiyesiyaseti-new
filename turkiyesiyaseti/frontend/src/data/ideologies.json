@@ -1,0 +1,44 @@
+{
+  "economic": {
+    "name": "Ekonomik",
+    "description": "Ekonomik düzen ve devletin ekonomideki rolüne ilişkin görüşler",
+    "positions": ["Devletçi", "Sosyal Demokrat", "Merkez/Karma", "Liberal", "Piyasacı"],
+    "weight": 1.2
+  },
+  "governance": {
+    "name": "Yönetim",
+    "description": "Merkezi yönetim ve yerel yönetimler arasındaki yetki dağılımına ilişkin görüşler",
+    "positions": ["Adem-i Merkezi", "Güçlendirilmiş Yerel", "Denge", "Merkezi Eğilimli", "Tam Merkezi"],
+    "weight": 1.0
+  },
+  "cultural": {
+    "name": "Kültürel",
+    "description": "Toplumsal değerlere, geleneklere ve modernleşmeye ilişkin görüşler",
+    "positions": ["İlerici", "Modern", "Denge", "Muhafazakar", "Gelenekselci"],
+    "weight": 1.1
+  },
+  "identity": {
+    "name": "Kimlik",
+    "description": "Etnik, dini ve kültürel kimliklere yaklaşım",
+    "positions": ["Çoğulcu", "Kapsayıcı", "Vatandaşlık Odaklı", "Milli", "Milliyetçi"],
+    "weight": 1.3
+  },
+  "religion": {
+    "name": "İnanç-Devlet İlişkisi",
+    "description": "Din ve devlet arasındaki ilişkiye dair görüşler",
+    "positions": ["Laik İlkeci", "Liberal Laik", "Ilımlı Laiklik", "Din Dostu", "Dinsel"],
+    "weight": 1.2
+  },
+  "foreign": {
+    "name": "Dış Politika",
+    "description": "Uluslararası ilişkiler ve dış politika yaklaşımı",
+    "positions": ["Batı Bloku", "Batı Yanlısı", "Dengeli", "Bağımsız", "Doğu/Güney Yönelimli"],
+    "weight": 0.9
+  },
+  "change": {
+    "name": "Toplumsal Değişim",
+    "description": "Toplumsal ve siyasal düzenin değişimine yaklaşım",
+    "positions": ["Devrimci", "Reformcu", "Kademeli İyileştirme", "Statükocu", "Gelenekçi"],
+    "weight": 0.8
+  }
+}
